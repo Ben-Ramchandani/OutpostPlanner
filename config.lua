@@ -1,0 +1,20 @@
+OB_CONF= {
+    ores = {"copper-ore", "iron-ore", "coal", "stone"},
+    miner_name = "electric-mining-drill",
+    miner_width = 3, -- The size of the miner, assumed to be square.
+    miner_area = 5, -- The area the miner mines in.
+    electric_pole = "medium-electric-pole",
+    electric_pole_spacing = 9,
+    electric_pole_indent = 4,
+    transport_belt_miners = "fast-transport-belt",
+    transport_belt_join = "express-transport-belt",
+    splitter_join = "express-splitter",
+    output_belt_count = 4, -- The number of belts of ore leaving the set-up.
+    place_directly = false, -- Place entities directly or use blueprints?
+    drain_inventory = true, -- When placing directly, should items be removed from the player's inventory?
+    place_blueprint_on_out_of_inventory = true, -- If the player does not have that item place a blueprint instead?
+    place_blueprint_on_collision = true, -- When placing directly, place a blueprint if there would otherwise be a collision.
+    check_for_ore = true, -- For each miner, check there is some of the correct ore underneath it.
+    check_dirty_mining = true, -- For each miner, check if any other ores are present in its mining area.
+    run_over_multiple_ticks = true -- Place instantly or one at a time?
+}
