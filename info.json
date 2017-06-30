@@ -1,7 +1,7 @@
 {
-  "name": "OutpostBuilder",
-  "version": "0.0.1",
-  "title": "OutpostBuilder",
+  "name": "MinePlanner",
+  "version": "0.1.0",
+  "title": "Mine Planner",
   "author": "bob809",
   "description": "",
   "factorio_version": "0.15.0",
