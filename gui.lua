@@ -215,16 +215,6 @@ script.on_event(
 )
 
 script.on_event(
-    defines.events.on_research_finished,
-    function(event)
-        if event.research.name == "logistics-2" then
-            event.research.force.print({"outpost-builder.logistics-2-researched-tip"})
-            script.on_event(defines.events.on_research_finished, nil)
-        end
-    end
-)
-
-script.on_event(
     defines.events.on_player_joined_game,
     function(event)
         init_gui_player(game.players[event.player_index])

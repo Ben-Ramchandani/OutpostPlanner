@@ -2,8 +2,8 @@ NAME=MinePlanner_0.1.0
 
 all: $(NAME).zip
 
-$(NAME).zip:
-	find . -not -path "*\.git/*" -not -name "\.git" -not -name "makefile" -not -name "\." | xargs zip -r $(NAME).zip
+$(NAME).zip: *
+	cd ..; find $(NAME)/ -type f -not -path "*\.git/*" -not -name "\.git" -not -name "makefile" | xargs zip $(NAME)/$(NAME).zip 
 
 .PHONY: clean
 
