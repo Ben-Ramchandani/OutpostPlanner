@@ -1,9 +1,9 @@
 {
   "name": "MinePlanner",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "title": "Mine Planner",
   "author": "bob809",
-  "description": "",
+  "description": "Automatically build mining outposts.",
   "factorio_version": "0.15.0",
   "dependencies": ["base >= 0.15.00"]
 }
