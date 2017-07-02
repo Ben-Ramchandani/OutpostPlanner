@@ -1,6 +1,5 @@
-
-Mine Planner
-------------
+Outpost Planner
+---------------
 
 Automatically build mining outposts. The tool will place the miners, power poles and belts before merging together the outgoing lanes.
 To use select an ore patch with the tool.
