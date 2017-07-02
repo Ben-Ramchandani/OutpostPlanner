@@ -66,8 +66,8 @@ function place_entity(state, data)
         end
         for x = math.floor(position.x + box.left_top.x), math.ceil(position.x + box.right_bottom.x) do
             for y = math.floor(position.y + box.left_top.y), math.ceil(position.y + box.right_bottom.y) do
-                local tile = state.surface.get_tile(x, y)
-                if table.contains(state.conf.water_tiles, tile.name) then
+                local tile_prototype = state.surface.get_tile(x, y).prototype
+                if tile_prototype.collision_mask and tile_prototype.collision_mask["water-tile"] then
                     return 
                 end
             end
@@ -253,19 +253,30 @@ function place_pole(state)
 end
 
 function place_belt(state)
-    local row = math.floor(state.count / (state.row_length - 1))
+    local row = math.floor(state.count / (state.row_length))
     if row >= state.num_rows then
         state.stage = state.stage + 1
         state.count = 0
         return 
     end
-    if state.row_details[row + 1].miner_count == 0 then
+    
+    local x = (state.count % (state.row_length))
+    local y = row * state.row_height + state.conf.miner_width
+    
+    if state.count % state.row_length == 0 then
+        if state.place_poles_in_rows then
+            local x = (state.count % (state.row_length))
+            local y = row * state.row_height + state.conf.miner_width
+            place_entity(state, {position = {x = x, y = y}, name = state.conf.electric_pole})
+        end
         state.count = state.count + 1
         return 
     end
     
-    local x = (state.count % (state.row_length - 1)) + 1
-    local y = row * state.row_height + state.conf.miner_width
+    if state.row_details[row + 1].miner_count == 0 then
+        state.count = state.count + 1
+        return 
+    end
     
     local pos = {x = x, y = y}
     local belt = choose_belt(state, state.row_details[row + 1])
@@ -446,7 +457,7 @@ function on_selected_area(event, deconstruct_friendly)
         pole_indent = math.floor(pole_spacing / 2)
     end
     local electric_poles_per_row = math.ceil(row_length / pole_spacing)
-    
+    local place_poles_in_rows = pole_prototype.max_wire_distance < row_height
     local abs_xy = function(x, y)
         if conf.direction == defines.direction.east then
             return x + left, y + top
@@ -500,7 +511,7 @@ function on_selected_area(event, deconstruct_friendly)
             return a.speed < b.speed
         end
     )
-
+    
     local state = {
         stage = 0,
         count = 0,
@@ -519,6 +530,7 @@ function on_selected_area(event, deconstruct_friendly)
         electric_poles_per_row = electric_poles_per_row,
         electric_pole_spacing = pole_spacing,
         electric_pole_indent = pole_indent,
+        place_poles_in_rows = place_poles_in_rows,
         ore = ore,
         conf = table.clone(conf),
         abs_xy = abs_xy,
@@ -535,7 +547,7 @@ function on_selected_area(event, deconstruct_friendly)
     for i = 1, num_rows do
         state.row_details[i] = {miner_count = 0, miner_count_below = 0, miner_count_above = 0, end_pos = nil}
     end
-
+    
     if conf.run_over_multiple_ticks then
         register(state)
     else

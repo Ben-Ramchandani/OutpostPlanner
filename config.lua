@@ -7,7 +7,6 @@ OB_CONF = {
     output_belt_count = 4, -- The number of belts of ore leaving the set-up.
 
     -- Can only be changed here (if in multiplayer make sure you all have the same config or you will desync).
-    water_tiles = {"water", "deepwater", "water-green", "deepwater-green", "out-of-map"},
     place_directly = false, -- Place entities directly or use blueprints?
     drain_inventory = true, -- When placing directly, should items be removed from the player's inventory?
     place_blueprint_on_out_of_inventory = true, -- If the player does not have that item place a blueprint instead?
@@ -20,7 +19,6 @@ OB_CONF = {
 
 function get_config(player)
     local conf = table.combine(table.clone(OB_CONF), global.OB_CONF_overrides[player.index])
-    conf.water_tiles = table.clone(conf.water_tiles)
     conf.transport_belts = table.clone(conf.transport_belts)
     local pole_prototype = game.entity_prototypes[conf.electric_pole]
     conf.pole_width = math.ceil(math.max(pole_prototype.collision_box.right_bottom.x - pole_prototype.collision_box.left_top.y, pole_prototype.collision_box.right_bottom.x - pole_prototype.collision_box.left_top.y))
