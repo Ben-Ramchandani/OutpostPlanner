@@ -164,7 +164,7 @@ script.on_load(on_load)
 function deconstruct(state)
     local number_of_merges = math.max(0, state.num_rows - state.conf.output_belt_count)
     local extra_space = number_of_merges + state.conf.output_belt_count
-    local box = {left_top = {x = -2, y = -2}, right_bottom = {x = state.width + 2 + extra_space, y = math.max(state.height + 3, state.row_height * state.num_half_rows / 2 + 1)}}
+    local box = {left_top = {x = -2, y = -2}, right_bottom = {x = state.width + 3 + extra_space, y = math.max(state.height + 3, state.row_height * state.num_half_rows / 2 + 1)}}
     
     local entities
     if state.deconstruct_friendly then
