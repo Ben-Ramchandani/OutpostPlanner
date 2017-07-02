@@ -194,7 +194,7 @@ function place_miner(state)
     local direction = (half_row % 2 == 0) and defines.direction.south or defines.direction.north
     
     if state.conf.check_dirty_mining then
-        local radius = state.conf.miner_area / 2 - 0.1
+        local radius = state.conf.miner_area / 2
         local mining_box = {left_top = {x = x - radius, y = y - radius}, right_bottom = {x = x + radius, y = y + radius}}
         local entities = state.surface.find_entities_filtered({area = state.abs_area(mining_box), type = "resource"})
         
