@@ -8,3 +8,5 @@ By default the the mod will clear trees and rocks in the area selected, if shift
 The mod includes an in-game GUI to change some settings. Alternatively the config file (`config.lua`) can be edited to change how the mod behaves. These options can also be changed for all players on a per-save basis with a command from the Lua console, e.g.
 
     /c remote.call("OutpostBuilder", "config", {electric_pole = "medium-electric-pole", run_over_multiple_ticks = false})
+
+[Link to Factorio mod website](https://mods.factorio.com/mods/bob809/OutpostPlanner)
