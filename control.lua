@@ -4,36 +4,72 @@ require("gui")
 
 -- Note this mod uses its original name (OutpostBuilder) internally.
 
+
 function find_ore(entities)
-    -- Find the most common ore in the area
-    local ore_counts = {}
+    -- Find the most common ore in the area, or ores if they have the same product.
+    local ore_counts_name = {}
+    local ore_counts_product = {}
+    local ore_products_to_name = {}
     for k, entity in pairs(entities) do
         if entity.valid and entity.prototype.resource_category == "basic-solid" then
-            if ore_counts[entity.name] then
-                ore_counts[entity.name] = ore_counts[entity.name] + 1
+            if #entity.prototype.mineable_properties.products == 1 then
+                local name = entity.prototype.mineable_properties.products[1].name
+                if ore_counts_product[name] then
+                    ore_counts_product[name] = ore_counts_product[name] + 1
+                else
+                    ore_counts_product[name] = 0
+                end
+                ore_products_to_name[name] = ore_products_to_name[name] or {}
+                ore_products_to_name[name][entity.name] = true
             else
-                ore_counts[entity.name] = 0
+                local name = entity.name
+                if ore_counts_name[name] then
+                    ore_counts_name[name] = ore_counts_name[name] + 1
+                else
+                    ore_counts_name[name] = 0
+                end
             end
         end
     end
-    local max_count = 0
-    local max_ore = nil
-    for ore, count in pairs(ore_counts) do
-        if count > max_count then
-            max_ore, max_count = ore, count
+    local max_count_name = 0
+    local max_ore_name = nil
+    for ore, count in pairs(ore_counts_name) do
+        if count > max_count_name then
+            max_ore_name, max_count_name = ore, count
         end
     end
-    return max_ore
+
+    local max_count_product = 0
+    local max_product = nil
+    for product, count in pairs(ore_counts_product) do
+        if count > max_count_product then
+            max_product, max_count_product = product, count
+        end
+    end
+
+    if max_count_name > max_count_product then
+        if max_ore_name then
+            return {max_ore_name}
+        else
+            return nil
+        end
+    else
+        if max_product then
+            return dict_to_array(ore_products_to_name[max_product])
+        else
+            return nil
+        end
+    end
 end
 
-function find_bounding_box(entities, name)
+function find_bounding_box(entities, names)
     local top = math.huge
     local left = math.huge
     local right = -math.huge
     local bottom = -math.huge
     
     for k, entity in pairs(entities) do
-        if entity.valid and entity.name == name then
+        if entity.valid and table.contains(names, entity.name) then
             top = math.min(top, entity.position.y)
             left = math.min(left, entity.position.x)
             bottom = math.max(bottom, entity.position.y)
@@ -202,7 +238,7 @@ function place_miner(state)
         local entities = state.surface.find_entities_filtered({area = state.abs_area(mining_box), type = "resource"})
         
         for k, entity in pairs(entities) do
-            if entity.name ~= state.ore and entity.prototype.resource_category == "basic-solid" then
+            if not table.contains(state.ore_names, entity.name) and entity.prototype.resource_category == "basic-solid" then
                 state.count = state.count + 1
                 return 
             end
@@ -215,8 +251,9 @@ function place_miner(state)
         local entities = state.surface.find_entities_filtered({area = state.abs_area(mining_box), type = "resource"})
         local found_ore = false
         for k, entity in pairs(entities) do
-            if entity.name == state.ore then
+            if table.contains(state.ore_names, entity.name) then
                 found_ore = true
+                break
             end
         end
         if not found_ore then
@@ -487,18 +524,25 @@ function on_selected_area(event, deconstruct_friendly)
         set_config(player, {used_before = true})
     end
 
-    local ore = find_ore(event.entities)
-    local fluid = false
-    if ore == nil then
+    local ore_names = find_ore(event.entities)
+    if ore_names == nil then
         player.print({"outpost-builder.no-ore"})
         return 
     end
-    if game.entity_prototypes[ore].mineable_properties.required_fluid and conf.miner_width == 3 then
-        fluid = true
-        table.insert(stages, 4, place_pipes)
+
+    local by_product = false
+    local fluid = false
+    for i, name in ipairs(ore_names) do
+        if game.entity_prototypes[name].mineable_properties.required_fluid and conf.miner_width == 3 then
+            fluid = true
+            table.insert(stages, 4, place_pipes)
+            break
+        end
     end
-    
-    local bounding_box = find_bounding_box(event.entities, ore)
+
+
+    -- FIXME
+    local bounding_box = find_bounding_box(event.entities, ore_names)
     
     local top = bounding_box.left_top.y
     local left = bounding_box.left_top.x
@@ -574,8 +618,10 @@ function on_selected_area(event, deconstruct_friendly)
     
     -- See https://wiki.factorio.com/Mining
     local miner_prototype = game.entity_prototypes[conf.miner_name]
-    local ore_prototype = game.entity_prototypes[ore]
-    local miner_res_per_sec = (1 + force.mining_drill_productivity_bonus) * (miner_prototype.mining_power - ore_prototype.mineable_properties.hardness) * miner_prototype.mining_speed / ore_prototype.mineable_properties.mining_time
+    local miner_res_per_sec_function = function(ore_name)
+        ore_prototype = game.entity_prototypes[ore_name]
+        return (1 + force.mining_drill_productivity_bonus) * (miner_prototype.mining_power - ore_prototype.mineable_properties.hardness) * miner_prototype.mining_speed / ore_prototype.mineable_properties.mining_time end
+    local miner_res_per_sec = miner_res_per_sec_function(table.max(ore_names, miner_res_per_sec_function))
     local transport_belts = table.map(
         conf.transport_belts,
         function(belt)
@@ -608,8 +654,9 @@ function on_selected_area(event, deconstruct_friendly)
         electric_pole_spacing = pole_spacing,
         electric_pole_indent = pole_indent,
         place_poles_in_rows = place_poles_in_rows,
-        ore = ore,
-        conf = table.clone(conf),
+        ore_names = ore_names,
+        by_product = by_product,
+        conf = conf,
         stages = stages,
         fluid = fluid,
         abs_xy = abs_xy,

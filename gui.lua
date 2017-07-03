@@ -125,6 +125,7 @@ function belt_button_click(event)
 end
 
 function miner_button_click(event)
+    -- TODO: Check it's not a pumpjack.
     local player = game.players[event.element.player_index]
     local conf = get_config(player)
     local item_stack = player.cursor_stack

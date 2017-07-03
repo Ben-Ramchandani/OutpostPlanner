@@ -19,6 +19,14 @@ function table.clone(org)
     return copy
 end
 
+function dict_to_array(dict)
+    local array = {}
+    for k, v in pairs(dict) do
+        table.insert(array, k)
+    end
+    return array
+end
+
 function math.clamp(x, a, b)
     if x < a then
         return a
@@ -52,7 +60,7 @@ function table.max_index(t, f)
     end
     local current_max = -math.huge
     local max_index = nil
-    for k, v in pairs(t) do
+    for i, v in ipairs(t) do
         local val = f(v)
         if val > current_max then
             current_max = val
