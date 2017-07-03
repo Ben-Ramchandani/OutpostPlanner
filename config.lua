@@ -60,7 +60,7 @@ function validate_config(partialConf, player)
         end
     end
     if partialConf.transport_belts then
-        for k, belt in partialConf.transport_belts do
+        for k, belt in pairs(partialConf.transport_belts) do
             if not game.entity_prototypes[belt] or (not game.entity_prototypes[belt].type == "transport_belt") or not game.entity_prototypes[belt_to_splitter(belt)] or not (game.entity_prototypes[belt_to_splitter(belt)].type == "splitter") then
                 return false
             end

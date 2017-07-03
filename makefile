@@ -1,4 +1,4 @@
-NAME=OutpostPlanner_0.1.3
+NAME=OutpostPlanner_0.1.4
 
 all: $(NAME).zip
 
