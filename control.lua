@@ -476,6 +476,11 @@ function on_selected_area(event, deconstruct_friendly)
     local conf = get_config(player)
     local stages = {deconstruct, place_miner, place_pole, place_belt, remove_empty_rows, merge_lanes, collate_outputs}
     
+    if not conf.used_before then
+        player.print({"outpost-builder.on-first-use", {"outpost-builder.initials"}})
+        set_config(player, {used_before = true})
+    end
+
     local ore = find_ore(event.entities)
     local fluid = false
     if ore == nil then
