@@ -250,10 +250,10 @@ function place_pole(state)
     end
     
     local x = state.electric_pole_indent + (state.count % state.electric_poles_per_row) * state.electric_pole_spacing
-    if x > state.row_length then
-        x = state.row_length
+    if x >= state.row_length then
+        x = state.row_length - 1
     end
-    local y = row * state.row_height - 1
+    local y = row * state.row_height - state.conf.pole_width / 2
     
     place_entity(state, {position = {x, y}, name = state.conf.electric_pole})
     state.count = state.count + 1
@@ -279,16 +279,15 @@ function place_pipes(state)
     local is_above_row = state.count % 2 == 0
     local row = math.floor(state.count / 2)
     local x = state.row_length
-    local y = math.floor(state.count / 2) * state.row_height - 1
+    local y = row * state.row_height + state.conf.miner_width / 2
     local direciton
     local last_miner_x = nil
     if is_above_row then
-        y = y + state.conf.pole_width + state.conf.miner_width / 2
         if state.row_details[row + 1].last_miner_above then
             last_miner_x = state.row_details[row + 1].last_miner_above.x + 2
         end
     else
-        y = y + state.conf.pole_width + state.conf.miner_width + 1 + state.conf.miner_width / 2
+        y = y + state.conf.miner_width + 1
         if state.row_details[row + 1].last_miner_below then
             last_miner_x = state.row_details[row + 1].last_miner_below.x + 2
         end
@@ -522,12 +521,12 @@ function on_selected_area(event, deconstruct_friendly)
     -- I'm not sure this formula is perfect, but it works for all the vanilla poles.
     if pole_prototype.max_wire_distance - 2 * pole_prototype.supply_area_distance <= conf.miner_width then
         pole_spacing = math.floor(pole_prototype.max_wire_distance)
-        pole_indent = math.floor(pole_spacing / 2)
+        pole_indent = math.floor(pole_prototype.supply_area_distance + conf.miner_width - 1)
     else
         pole_spacing = math.floor(math.max(conf.miner_width * 2, math.min(pole_prototype.max_wire_distance, math.ceil(conf.miner_width + 2 * pole_prototype.supply_area_distance - 1))))
-        pole_indent = math.floor(pole_spacing / 2)
+        pole_indent = math.floor(pole_prototype.supply_area_distance + conf.miner_width - 1)
     end
-    local electric_poles_per_row = math.ceil(row_length / pole_spacing)
+    local electric_poles_per_row = math.ceil((row_length - (pole_indent - pole_spacing/2)*2) / pole_spacing)
     local place_poles_in_rows = pole_prototype.max_wire_distance < row_height
     local abs_xy = function(x, y)
         if conf.direction == defines.direction.east then
