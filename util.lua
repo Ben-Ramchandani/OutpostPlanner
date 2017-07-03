@@ -77,3 +77,7 @@ end
 function belt_to_splitter(belt)
     return string.gsub(belt, "(.*)transport%-belt", "%1splitter")
 end
+
+function pipe_to_underground(pipe)
+    return pipe .. "-to-ground"
+end

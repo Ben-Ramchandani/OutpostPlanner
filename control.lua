@@ -8,7 +8,7 @@ function find_ore(entities)
     -- Find the most common ore in the area
     local ore_counts = {}
     for k, entity in pairs(entities) do
-        if entity.valid and entity.prototype.resource_category == "basic-solid" and not entity.prototype.mineable_properties.required_fluid then
+        if entity.valid and entity.prototype.resource_category == "basic-solid" then
             if ore_counts[entity.name] then
                 ore_counts[entity.name] = ore_counts[entity.name] + 1
             else
@@ -143,7 +143,7 @@ function on_tick(event)
         local i = 1
         while i <= #global.AM_states do
             local state = global.AM_states[i]
-            if state.stage < #stages then
+            if state.stage < #state.stages then
                 placement_tick(state)
                 i = i + 1
             else
@@ -164,6 +164,9 @@ script.on_load(on_load)
 function deconstruct(state)
     local number_of_merges = math.max(0, state.num_rows - state.conf.output_belt_count)
     local extra_space = number_of_merges + state.conf.output_belt_count
+    if state.fluid then
+        extra_space = extra_space + 1
+    end
     local box = {left_top = {x = -2, y = -2}, right_bottom = {x = state.width + 3 + extra_space, y = math.max(state.height + 3, state.row_height * state.num_half_rows / 2 + 1)}}
     
     local entities
@@ -221,12 +224,16 @@ function place_miner(state)
             return 
         end
     end
+
+    local position = {x = x, y = y}
     
-    if place_entity(state, {position = {x, y}, direction = direction, name = state.conf.miner_name}) then
+    if place_entity(state, {position = position, direction = direction, name = state.conf.miner_name}) then
         state.row_details[row + 1].miner_count = state.row_details[row + 1].miner_count + 1
         if direction == defines.direction.south then
+            state.row_details[row + 1].last_miner_above = position
             state.row_details[row + 1].miner_count_above = state.row_details[row + 1].miner_count_above + 1
         else
+            state.row_details[row + 1].last_miner_below = position
             state.row_details[row + 1].miner_count_below = state.row_details[row + 1].miner_count_below + 1
         end
         state.total_miners = state.total_miners + 1
@@ -252,21 +259,69 @@ function place_pole(state)
     state.count = state.count + 1
 end
 
+function underground_pipe_bridge(state, underground_pipe, max_distance, x1, x2, y)
+    if x2 - x1 > max_distance then
+        local x = x1 + math.floor((x2 - x1) / 2)
+        place_entity(state, {position = {x = x, y = y}, name = underground_pipe, direction = defines.direction.east})
+        place_entity(state, {position = {x = x + 1, y = y}, name = underground_pipe, direction = defines.direction.west})
+        underground_pipe_bridge(state, underground_pipe, max_distance, x1, x, y)
+        underground_pipe_bridge(state, underground_pipe, max_distance, x + 1, x2, y)
+    end
+end
+
+function place_pipes(state)
+    if state.count >= state.num_half_rows then
+        state.stage = state.stage + 1
+        state.count = 0
+        return
+    end
+
+    local is_above_row = state.count % 2 == 0
+    local row = math.floor(state.count / 2)
+    local x = state.row_length
+    local y = math.floor(state.count / 2) * state.row_height - 1
+    local direciton
+    local last_miner_x = nil
+    if is_above_row then
+        y = y + state.conf.pole_width + state.conf.miner_width / 2
+        if state.row_details[row + 1].last_miner_above then
+            last_miner_x = state.row_details[row + 1].last_miner_above.x + 2
+        end
+    else
+        y = y + state.conf.pole_width + state.conf.miner_width + 1 + state.conf.miner_width / 2
+        if state.row_details[row + 1].last_miner_below then
+            last_miner_x = state.row_details[row + 1].last_miner_below.x + 2
+        end
+    end
+
+    local underground_pipe = pipe_to_underground(state.conf.pipe_name)
+    place_entity(state, {position = {x = x, y = y - 1}, name = underground_pipe, direction = defines.direction.south})
+    place_entity(state, {position = {x = x, y = y}, name = state.conf.pipe_name, direction = defines.direction.south})
+    place_entity(state, {position = {x = x, y = y + 1}, name = underground_pipe, direction = defines.direction.north})
+
+    if last_miner_x and last_miner_x ~= x then
+        place_entity(state, {position = {x = last_miner_x, y = y}, name = underground_pipe, direction = defines.direction.west})
+        place_entity(state, {position = {x = x - 1, y = y}, name = underground_pipe, direction = defines.direction.east})
+        underground_pipe_bridge(state, underground_pipe, game.entity_prototypes[underground_pipe].max_underground_distance, last_miner_x, x-1, y)
+    end
+
+    state.count = state.count + 1
+end
+
+
 function place_belt(state)
-    local row = math.floor(state.count / (state.row_length))
+    local row = math.floor(state.count / (state.row_length + 1))
     if row >= state.num_rows then
         state.stage = state.stage + 1
         state.count = 0
         return 
     end
     
-    local x = (state.count % (state.row_length))
+    local x = (state.count % (state.row_length + 1))
     local y = row * state.row_height + state.conf.miner_width
     
-    if state.count % state.row_length == 0 then
+    if state.count % (state.row_length + 1) == 0 then
         if state.place_poles_in_rows then
-            local x = (state.count % (state.row_length))
-            local y = row * state.row_height + state.conf.miner_width
             place_entity(state, {position = {x = x, y = y}, name = state.conf.electric_pole})
         end
         state.count = state.count + 1
@@ -274,6 +329,11 @@ function place_belt(state)
     end
     
     if state.row_details[row + 1].miner_count == 0 then
+        state.count = state.count + 1
+        return 
+    end
+
+    if state.count % (state.row_length + 1) == state.row_length and not state.fluid then
         state.count = state.count + 1
         return 
     end
@@ -291,8 +351,9 @@ function remove_empty_rows(state)
         if state.row_details[i].miner_count == 0 then
             table.remove(state.row_details, i)
             state.num_rows = state.num_rows - 1
+        else
+            i = i + 1
         end
-        i = i + 1
     end
     if state.num_rows == 0 then
         state.stage = 1000
@@ -403,10 +464,9 @@ function collate_outputs(state) -- Move the outputs to be adjacent.
     end
 end
 
-stages = {deconstruct, place_miner, place_pole, place_belt, remove_empty_rows, merge_lanes, collate_outputs}
 
 function placement_tick(state)
-    stages[state.stage + 1](state)
+    state.stages[state.stage + 1](state)
 end
 
 function on_selected_area(event, deconstruct_friendly)
@@ -414,11 +474,17 @@ function on_selected_area(event, deconstruct_friendly)
     local surface = player.surface
     local force = player.force
     local conf = get_config(player)
+    local stages = {deconstruct, place_miner, place_pole, place_belt, remove_empty_rows, merge_lanes, collate_outputs}
     
     local ore = find_ore(event.entities)
+    local fluid = false
     if ore == nil then
         player.print({"outpost-builder.no-ore"})
         return 
+    end
+    if game.entity_prototypes[ore].mineable_properties.required_fluid and conf.miner_width == 3 then
+        fluid = true
+        table.insert(stages, 4, place_pipes)
     end
     
     local bounding_box = find_bounding_box(event.entities, ore)
@@ -533,6 +599,8 @@ function on_selected_area(event, deconstruct_friendly)
         place_poles_in_rows = place_poles_in_rows,
         ore = ore,
         conf = table.clone(conf),
+        stages = stages,
+        fluid = fluid,
         abs_xy = abs_xy,
         abs_position = abs_position,
         abs_area = abs_area,
@@ -551,7 +619,7 @@ function on_selected_area(event, deconstruct_friendly)
     if conf.run_over_multiple_ticks then
         register(state)
     else
-        while state.stage < #stages do
+        while state.stage < #state.stages do
             placement_tick(state)
         end
     end

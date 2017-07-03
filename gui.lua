@@ -21,6 +21,7 @@ function create_settings_window(conf, player)
     local output_rows_button = frame.add({type = "button", name = "OutpostBuilderOutputRowsButton", style = mod_gui.button_style, tooltip = {"outpost-builder.output-belts"}})
     local miner_entity_button = frame.add({type = "sprite-button", name = "OutpostBuilderMinerButton", sprite = ("entity/" .. conf.miner_name), style = mod_gui.button_style})
     local pole_entity_button = frame.add({type = "sprite-button", name = "OutpostBuilderPoleButton", sprite = ("entity/" .. conf.electric_pole), style = mod_gui.button_style})
+    local pipe_entity_button = frame.add({type = "sprite-button", name = "OutpostBuilderPipeButton", sprite = ("entity/" .. conf.pipe_name), style = mod_gui.button_style})
     local belt_button = frame.add({type = "sprite-button", name = "OutpostBuilderBeltButton", sprite = "item/transport-belt", style = mod_gui.button_style, tooltip = {"outpost-builder.belt-button"}})
     update_gui(player)
 end
@@ -45,6 +46,8 @@ function update_gui(player)
     frame.OutpostBuilderMinerButton.tooltip = {"entity-name." .. conf.miner_name}
     frame.OutpostBuilderPoleButton.sprite = "entity/" .. conf.electric_pole
     frame.OutpostBuilderPoleButton.tooltip = {"entity-name." .. conf.electric_pole}
+    frame.OutpostBuilderPipeButton.sprite = "entity/" .. conf.pipe_name
+    frame.OutpostBuilderPipeButton.tooltip = {"entity-name." .. conf.pipe_name}
     local transport_belts = conf.transport_belts
     local i = 1
     while i <= #frame.children do
@@ -94,11 +97,12 @@ function belt_button_click(event)
             local name = place_result.name
             local index = table.contains(conf.transport_belts, name)
             if index then
-                player.print({"outpost-builder.forgetting-about", {"entity-name." .. name}})
                 if #conf.transport_belts > 1 then
+                    player.print({"outpost-builder.forgetting-about", {"entity-name." .. name}})
                     table.remove(conf.transport_belts, index)
                 else
-                    conf.transport_belts = table.clone(OB_CONF.transport_belts)
+                    player.print({"outpost-builder.no-belt"})
+                    return
                 end
             else
                 if game.entity_prototypes[belt_to_splitter(name)] then
@@ -115,6 +119,8 @@ function belt_button_click(event)
         end
     else
         player.print({"outpost-builder.change-belt"})
+        player.print({"outpost-builder.change-belt-1"})
+        player.print({"outpost-builder.change-belt-2"})
     end
 end
 
@@ -138,6 +144,31 @@ function miner_button_click(event)
     end
 end
 
+function pipe_button_click(event)
+    local player = game.players[event.element.player_index]
+    local conf = get_config(player)
+    local item_stack = player.cursor_stack
+    if item_stack and item_stack.valid and item_stack.valid_for_read then
+        local place_result = item_stack.prototype.place_result
+        if place_result and place_result.type == "pipe" then
+            local underground_pipe = pipe_to_underground(place_result.name)
+            if not game.entity_prototypes[underground_pipe] or not (game.entity_prototypes[underground_pipe].type == "pipe-to-ground") then
+                player.print{"outpost-builder.no-underground-pipe"}
+                return
+            end
+            set_config(player, {pipe_name = place_result.name})
+            player.print({"outpost-builder.use-pipe", {"entity-name." .. place_result.name}})
+            local frame_flow = mod_gui.get_frame_flow(player)
+            frame_flow.OutpostBuilderWindow.OutpostBuilderPipeButton.sprite = "entity/" .. place_result.name
+            frame_flow.OutpostBuilderWindow.OutpostBuilderPipeButton.tooltip = {"entity-name." .. place_result.name}
+        else
+        player.print({"outpost-builder.unknown-item"})
+        end
+    else
+        player.print({"outpost-builder.change-pipe"})
+    end
+end
+
 function pole_button_click(event)
     local player = game.players[event.element.player_index]
     local conf = get_config(player)
@@ -149,6 +180,7 @@ function pole_button_click(event)
             player.print({"outpost-builder.use-pole", {"entity-name." .. place_result.name}})
             local frame_flow = mod_gui.get_frame_flow(player)
             frame_flow.OutpostBuilderWindow.OutpostBuilderPoleButton.sprite = "entity/" .. place_result.name
+            frame_flow.OutpostBuilderWindow.OutpostBuilderPoleButton.tooltip = {"entity-name." .. place_result.name}
         else
             player.print({"outpost-builder.unknown-item"})
         end
@@ -210,6 +242,8 @@ script.on_event(
             miner_button_click(event)
         elseif event.element.name == "OutpostBuilderPoleButton" then
             pole_button_click(event)
+        elseif event.element.name == "OutpostBuilderPipeButton" then
+            pipe_button_click(event)
         end
     end
 )

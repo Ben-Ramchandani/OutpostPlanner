@@ -3,9 +3,9 @@ OB_CONF = {
     miner_name = "electric-mining-drill",
     electric_pole = "small-electric-pole",
     transport_belts = {"transport-belt"},
+    pipe_name = "pipe",
     direction = defines.direction.east,
     output_belt_count = 4, -- The number of belts of ore leaving the set-up.
-
     -- Can only be changed here (if in multiplayer make sure you all have the same config or you will desync).
     place_directly = false, -- Place entities directly or use blueprints?
     drain_inventory = true, -- When placing directly, should items be removed from the player's inventory?
@@ -49,29 +49,30 @@ end
 remote.add_interface("OutpostBuilder", {reset = reset_all, config = set_config_global})
 
 function validate_config(partialConf, player)
-    local valid = true
     if partialConf.miner_name then
-        if not game.entity_prototypes[partialConf.miner_name] then
-            partialConf.miner_name = OB_CONF.miner_name
-            valid = false
+        if not game.entity_prototypes[partialConf.miner_name] or (not game.entity_prototypes[partialConf.miner_name].type == "mining-drill") then
+            return false
         end
     end
     if partialConf.electric_pole then
-        if not game.entity_prototypes[partialConf.electric_pole] then
-            partialConf.electric_pole = OB_CONF.electric_pole
-            valid = false
+        if not game.entity_prototypes[partialConf.electric_pole] or (not game.entity_prototypes[partialConf.electric_pole].type == "electric-pole") then
+            return false
         end
     end
     if partialConf.transport_belts then
         for k, belt in partialConf.transport_belts do
-            if not game.entity_prototypes[belt] or not game.entity_prototypes[belt_to_splitter(belt)] then
-                partialConf.transport_belts = OB_CONF.transport_belts
-                valid = false
-                break
+            if not game.entity_prototypes[belt] or (not game.entity_prototypes[belt].type == "transport_belt") or not game.entity_prototypes[belt_to_splitter(belt)] or not (game.entity_prototypes[belt_to_splitter(belt)].type == "splitter") then
+                return false
             end
         end
     end
-    return valid
+    if partialConf.pipe_name then
+        local underground_pipe = pipe_to_underground(partialConf.pipe_name)
+        if not game.entity_prototypes[partialConf.pipe_name] or (not game.entity_prototypes[partialConf.pipe_name].type == "pipe") or not game.entity_prototypes[underground_pipe] or not (game.entity_prototypes[underground_pipe].type == "pipe-to-ground") then
+            return false
+        end
+    end
+    return true
 end
 
 function init_config()
@@ -81,12 +82,13 @@ function init_config()
         for k, v in pairs(global.OB_CONF_overrides) do
             local player = game.players[k]
             if not validate_config(v, player) then
+                global.OB_CONF_overrides[k] = {}
                 player.print({"outpost-builder.bad-config"})
                 update_gui(player)
             end
         end
     else
-         global.OB_CONF_overrides = {}
+        global.OB_CONF_overrides = {}
     end
 end
 
