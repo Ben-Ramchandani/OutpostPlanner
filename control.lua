@@ -254,6 +254,11 @@ function place_pole(state)
         x = state.row_length - 1
     end
     local y = row * state.row_height - state.conf.pole_width / 2
+
+    if state.count % state.electric_poles_per_row > 0 and state.row_details[row + 1].miner_count == 0 then
+        state.count = state.count + 1
+        return
+    end
     
     place_entity(state, {position = {x, y}, name = state.conf.electric_pole})
     state.count = state.count + 1
