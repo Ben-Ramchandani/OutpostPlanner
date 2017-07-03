@@ -249,13 +249,15 @@ function place_pole(state)
         return 
     end
     
-    local x = state.electric_pole_indent + (state.count % state.electric_poles_per_row) * state.electric_pole_spacing
+    local pole_num = state.count % state.electric_poles_per_row
+
+    local x = state.electric_pole_indent + pole_num * state.electric_pole_spacing
     if x >= state.row_length then
         x = state.row_length - 1
     end
     local y = row * state.row_height - state.conf.pole_width / 2
 
-    if state.count % state.electric_poles_per_row > 0 and state.row_details[row + 1].miner_count == 0 then
+    if pole_num > 0 and state.row_details[math.min(row + 1, state.num_rows)].miner_count == 0 and state.row_details[math.max(row, 1)].miner_count == 0 then
         state.count = state.count + 1
         return
     end
