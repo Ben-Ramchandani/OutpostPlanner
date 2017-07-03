@@ -12,7 +12,7 @@ By default the the mod will clear trees and rocks in the area selected, if shift
 
 #### In-game GUI
 
-The mod includes an in-game GUI to change some settings.
+The mod includes an in-game GUI to change some settings which can be accessed via a small button in the top left of the screen 'OP'.
 
 ![OP settings](http://i.imgur.com/k51RABn.png)
 
