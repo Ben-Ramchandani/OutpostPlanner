@@ -8,57 +8,40 @@ require("gui")
 function find_ore(entities)
     -- Find the most common ore in the area, or ores if they have the same product.
     local ore_counts_name = {}
-    local ore_counts_product = {}
-    local ore_products_to_name = {}
+    local ore_counts_by_product = {}
+    local ore_products_to_names = {}
     for k, entity in pairs(entities) do
         if entity.valid and entity.prototype.resource_category == "basic-solid" then
+            local name
             if #entity.prototype.mineable_properties.products == 1 then
-                local name = entity.prototype.mineable_properties.products[1].name
-                if ore_counts_product[name] then
-                    ore_counts_product[name] = ore_counts_product[name] + 1
-                else
-                    ore_counts_product[name] = 0
-                end
-                ore_products_to_name[name] = ore_products_to_name[name] or {}
-                ore_products_to_name[name][entity.name] = true
+                name = entity.prototype.mineable_properties.products[1].name
             else
-                local name = entity.name
-                if ore_counts_name[name] then
-                    ore_counts_name[name] = ore_counts_name[name] + 1
-                else
-                    ore_counts_name[name] = 0
-                end
+                local product_names = table.map(entity.prototype.mineable_properties.products, function(product) return product.name end)
+                table.sort(product_names)
+                name = table.concat(product_names, "|")
             end
-        end
-    end
-    local max_count_name = 0
-    local max_ore_name = nil
-    for ore, count in pairs(ore_counts_name) do
-        if count > max_count_name then
-            max_ore_name, max_count_name = ore, count
+            if ore_counts_by_product[name] then
+                ore_counts_by_product[name] = ore_counts_by_product[name] + 1
+            else
+                ore_counts_by_product[name] = 0
+            end
+            ore_products_to_names[name] = ore_products_to_names[name] or {}
+            ore_products_to_names[name][entity.name] = true
         end
     end
 
-    local max_count_product = 0
+    local max_count = 0
     local max_product = nil
-    for product, count in pairs(ore_counts_product) do
-        if count > max_count_product then
-            max_product, max_count_product = product, count
+    for product, count in pairs(ore_counts_by_product) do
+        if count > max_count then
+            max_product, max_count = product, count
         end
     end
 
-    if max_count_name > max_count_product then
-        if max_ore_name then
-            return {max_ore_name}
-        else
-            return nil
-        end
+    if max_product then
+        return dict_to_array(ore_products_to_names[max_product])
     else
-        if max_product then
-            return dict_to_array(ore_products_to_name[max_product])
-        else
-            return nil
-        end
+        return nil
     end
 end
 
@@ -294,7 +277,8 @@ function place_pole(state)
     end
     local y = row * state.row_height - state.conf.pole_width / 2
 
-    if pole_num > 0 and state.row_details[math.min(row + 1, state.num_rows)].miner_count == 0 and state.row_details[math.max(row, 1)].miner_count == 0 then
+
+    if pole_num > 0 and (row >= state.num_rows or state.row_details[row + 1].miner_count_above == 0) and (row < 1 or state.row_details[row].miner_count_below == 0) then
         state.count = state.count + 1
         return
     end
