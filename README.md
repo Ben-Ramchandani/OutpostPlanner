@@ -26,9 +26,10 @@ If you click this button with an item in your hand then the number of items in t
 * Change the pipe used for e.g. Uranium mining (click with one in your hand).
 * Change the transport belt used. The mod supports use of multiple transport belts, using faster ones only when necessary to maintain throughput.
 To start using a new transport belt click the button with it in your hand, it will appear to the right of the button.
-To stop using a transport belt click again with it in hand.
+To stop using a transport belt click again with it in hand.  
 For example, starting from the default (just normal transport belt), if you want the mod to use express belt only, you should click once with express belt in hand (to add it) and then
-click once with yellow belt in hand (to remove it).
+click once with yellow belt in hand (to remove it).  
+You can instead click on this button with a chest and that will be used instead (for bot-based mining).
 
 
 #### Other settings
