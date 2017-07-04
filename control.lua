@@ -77,18 +77,22 @@ function place_entity(state, data)
     data.force = state.force
     data.position = abs_position(state, data.position)
     data.direction = abs_direction(state, data.direction)
-    
-    if state.conf.check_collision and not state.surface.can_place_entity(data) then
+
+    if state.conf.check_collision then
         local box = game.entity_prototypes[data.name].collision_box
         local position = data.position
         local colliding = state.surface.find_entities_filtered({area = {{position.x + box.left_top.x, position.y + box.left_top.y}, {position.x + box.right_bottom.x, position.y + box.right_bottom.y}}})
         for i, entity in ipairs(colliding) do
-            if entity.prototype.collision_box and entity.prototype.collision_mask and entity.prototype.collision_mask["object-layer"] and not entity.to_be_deconstructed(state.force) and not (entity.name == "player") and not entity.prototype.friction_force then
+            local prototype = entity.prototype
+            if entity.name == "entity-ghost" and entity.ghost_type ~= "tile" then
+                prototype = entity.ghost_prototype
+            end
+            if prototype.collision_box and prototype.collision_mask and prototype.collision_mask["object-layer"] and not entity.to_be_deconstructed(state.force) and entity.name ~= "player" and entity.type ~= "car" then
                 return 
             end
         end
-        for x = math.floor(position.x + box.left_top.x), math.floor(position.x + box.right_bottom.x) do
-            for y = math.floor(position.y + box.left_top.y), math.floor(position.y + box.right_bottom.y) do
+        for x = math.floor(position.x + box.left_top.x), math.ceil(position.x + box.right_bottom.x - 1) do
+            for y = math.floor(position.y + box.left_top.y), math.ceil(position.y + box.right_bottom.y - 1) do
                 local tile_prototype = state.surface.get_tile(x, y).prototype
                 if tile_prototype.collision_mask and tile_prototype.collision_mask["water-tile"] then
                     return 
@@ -298,7 +302,7 @@ function place_pole(state)
     
     local x = state.electric_pole_indent + pole_num * state.electric_pole_spacing
     if x >= state.row_length then
-        x = state.row_length - 1
+        x = state.row_length - state.conf.pole_width / 2
     end
     local y = row * state.row_height - state.conf.pole_width / 2
     
@@ -383,7 +387,7 @@ function place_belt(state)
         return 
     end
     
-    local x = (state.count % (state.row_length + 1))
+    local x = (state.count % (state.row_length + 1)) + 0.5
     local y = row * state.row_height + state.conf.miner_width + 0.5
     
     if state.count % (state.row_length + 1) == 0 then
@@ -644,15 +648,14 @@ function on_selected_area(event, deconstruct_friendly)
     local row_length = miners_per_row * conf.miner_width
     
     local pole_prototype = game.entity_prototypes[conf.electric_pole]
-    local pole_spacing, pole_indent
+    local pole_spacing
     -- I'm not sure this formula is perfect, but it works for all the vanilla poles.
     if pole_prototype.max_wire_distance - 2 * pole_prototype.supply_area_distance <= conf.miner_width then
         pole_spacing = math.floor(pole_prototype.max_wire_distance)
-        pole_indent = math.floor(pole_prototype.supply_area_distance + conf.miner_width - 1)
     else
         pole_spacing = math.floor(math.max(conf.miner_width * 2, math.min(pole_prototype.max_wire_distance, math.ceil(conf.miner_width + 2 * pole_prototype.supply_area_distance - 1))))
-        pole_indent = math.floor(pole_prototype.supply_area_distance + conf.miner_width - 1)
     end
+    local pole_indent = math.floor(pole_prototype.supply_area_distance + conf.miner_width) - conf.pole_width / 2
     local electric_poles_per_row = math.ceil((row_length - (pole_indent - pole_spacing / 2) * 2) / pole_spacing)
     local place_poles_in_rows = pole_prototype.max_wire_distance < row_height
     
