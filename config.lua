@@ -73,6 +73,11 @@ function validate_config(partialConf, player)
             return false
         end
     end
+    if partialConf.use_chest then
+        if not game.entity_prototypes[partialConf.use_chest] or (game.entity_prototypes[partialConf.use_chest].type ~= "container" and game.entity_prototypes[partialConf.use_chest].type ~= "logistic-container") then
+            return false
+        end
+    end
     return true
 end
 

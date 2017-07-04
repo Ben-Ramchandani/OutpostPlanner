@@ -48,7 +48,7 @@ function update_gui(player)
     frame.OutpostBuilderPoleButton.tooltip = {"entity-name." .. conf.electric_pole}
     frame.OutpostBuilderPipeButton.sprite = "entity/" .. conf.pipe_name
     frame.OutpostBuilderPipeButton.tooltip = {"entity-name." .. conf.pipe_name}
-    local transport_belts = conf.transport_belts
+
     local i = 1
     while i <= #frame.children do
         element = frame.children[i]
@@ -58,10 +58,19 @@ function update_gui(player)
             i = i + 1
         end
     end
-    for j, belt in ipairs(transport_belts) do
-        local sprite = frame.add({type = "sprite", name = "OutpostBuilderBeltSprite-" .. j, sprite = "entity/" .. belt, tooltip = {"entity-name." .. belt}})
-        sprite.style.minimal_height = 34
-        sprite.style.top_padding = 2
+
+    if conf.use_chest then
+        frame.OutpostBuilderBeltButton.sprite = "entity/" .. conf.use_chest
+        frame.OutpostBuilderBeltButton.tooltip = {"entity-name." .. conf.use_chest}
+    else
+        local transport_belts = conf.transport_belts
+        frame.OutpostBuilderBeltButton.sprite = "item/transport-belt"
+        frame.OutpostBuilderBeltButton.tooltip = {"outpost-builder.belt-button"}
+        for j, belt in ipairs(transport_belts) do
+            local sprite = frame.add({type = "sprite", name = "OutpostBuilderBeltSprite-" .. j, sprite = "entity/" .. belt, tooltip = {"entity-name." .. belt}})
+            sprite.style.minimal_height = 34
+            sprite.style.top_padding = 2
+        end
     end
 end
 
@@ -95,6 +104,12 @@ function belt_button_click(event)
         local place_result = item_stack.prototype.place_result
         if place_result and place_result.type == "transport-belt" then
             local name = place_result.name
+            if conf.use_chest then
+                set_config(player, {use_chest = false})
+                player.print{"outpost-builder.using-belt"}
+                update_gui(player)
+                return
+            end
             local index = table.contains(conf.transport_belts, name)
             if index then
                 if #conf.transport_belts > 1 then
@@ -114,6 +129,10 @@ function belt_button_click(event)
             end
             set_config(player, {transport_belts = conf.transport_belts})
             update_gui(player)
+        elseif place_result and (place_result.type == "container" or place_result.type == "logistic-container") then
+            set_config(player, {use_chest = place_result.name})
+            player.print({"outpost-builder.using-chest", {"entity-name." .. place_result.name}})
+            update_gui(player)
         else
             player.print({"outpost-builder.unknown-item"})
         end
@@ -121,17 +140,17 @@ function belt_button_click(event)
         player.print({"outpost-builder.change-belt"})
         player.print({"outpost-builder.change-belt-1"})
         player.print({"outpost-builder.change-belt-2"})
+        player.print({"outpost-builder.change-belt-3"})
     end
 end
 
 function miner_button_click(event)
-    -- TODO: Check it's not a pumpjack.
     local player = game.players[event.element.player_index]
     local conf = get_config(player)
     local item_stack = player.cursor_stack
     if item_stack and item_stack.valid and item_stack.valid_for_read then
         local place_result = item_stack.prototype.place_result
-        if place_result and place_result.type == "mining-drill" then
+        if place_result and place_result.type == "mining-drill" and place_result.resource_categories["basic-solid"] then
             set_config(player, {miner_name = place_result.name})
             player.print({"outpost-builder.use-miner", {"entity-name." .. place_result.name}})
             local frame_flow = mod_gui.get_frame_flow(player)
