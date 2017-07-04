@@ -212,8 +212,14 @@ function place_miner(state)
         state.count = 0
         return 
     end
-    local y = math.floor(state.conf.miner_width / 2) + half_row * state.row_height / 2
-    local direction = (half_row % 2 == 0) and defines.direction.south or defines.direction.north
+    local y = row * state.row_height + state.conf.miner_width / 2
+    local direction
+    if half_row % 2 == 0 then
+        direction = defines.direction.south
+    else
+        direction = defines.direction.north
+        y = y + state.conf.miner_width + 1
+    end
     
     if state.conf.check_dirty_mining then
         local radius = state.conf.miner_area / 2
@@ -345,7 +351,7 @@ function place_belt(state)
     end
     
     local x = (state.count % (state.row_length + 1))
-    local y = row * state.row_height + state.conf.miner_width
+    local y = row * state.row_height + state.conf.miner_width + 0.5
     
     if state.count % (state.row_length + 1) == 0 then
         if state.place_poles_in_rows then
@@ -413,11 +419,11 @@ function merge_lanes(state)
     local belt1 = state.row_details[min_index - 1].belt
     local belt2 = state.row_details[min_index].belt
     
-    -- If a row ends in a splitter (from a previous iteration), then its y position will be <>.5, so take the closest.
-    if pos1.y % 1 == 0.5 then
+    -- If a row ends in a splitter (from a previous iteration), then its y position will be <>.0, so take the closest.
+    if pos1.y % 1 == 0 then
         pos1.y = pos1.y + 0.5
     end
-    if pos2.y % 1 == 0.5 then
+    if pos2.y % 1 == 0 then
         pos2.y = pos2.y - 0.5
     end
     
@@ -455,14 +461,14 @@ function collate_outputs(state) -- Move the outputs to be adjacent.
     local belt = row.belt
     
     if #state.output_rows == 0 then
-        if row.end_pos.y % 1 == 0.5 then
+        if row.end_pos.y % 1 == 0 then
             row.end_pos.y = row.end_pos.y - 0.5
         end
         row.end_pos.x = row.end_pos.x + 1
         place_entity(state, {position = row.end_pos, name = belt, direction = defines.direction.east})
         table.insert(state.output_rows, row)
     else
-        if row.end_pos.y % 1 == 0.5 then
+        if row.end_pos.y % 1 == 0 then
             row.end_pos.y = row.end_pos.y + 0.5
         end
         
