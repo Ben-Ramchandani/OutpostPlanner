@@ -71,8 +71,8 @@ end
 
 function place_entity(state, data)
     data.force = state.force
-    data.position = state.abs_position(data.position)
-    data.direction = state.abs_direction(data.direction)
+    data.position = abs_position(state, data.position)
+    data.direction = abs_direction(state, data.direction)
     
     if state.conf.check_collision and not state.surface.can_place_entity(data) then
         local box = game.entity_prototypes[data.name].collision_box
@@ -180,6 +180,13 @@ end
 
 script.on_load(on_load)
 
+function clear_running_state()
+    global.AM_states = {}
+end
+
+ON_INIT = ON_INIT or {}
+table.insert(ON_INIT, clear_running_state)
+
 function deconstruct(state)
     local number_of_merges = math.max(0, state.num_rows - state.conf.output_belt_count)
     local extra_space = number_of_merges + state.conf.output_belt_count
@@ -190,9 +197,9 @@ function deconstruct(state)
     
     local entities
     if state.deconstruct_friendly then
-        entities = state.surface.find_entities_filtered({area = state.abs_area(box)})
+        entities = state.surface.find_entities_filtered({area = abs_area(state, box)})
     else
-        entities = state.surface.find_entities_filtered({area = state.abs_area(box), force = "neutral"})
+        entities = state.surface.find_entities_filtered({area = abs_area(state, box), force = "neutral"})
     end
     
     for k, e in pairs(entities) do
@@ -224,7 +231,7 @@ function place_miner(state)
     if state.conf.check_dirty_mining then
         local radius = state.conf.miner_area / 2
         local mining_box = {left_top = {x = x - radius, y = y - radius}, right_bottom = {x = x + radius, y = y + radius}}
-        local entities = state.surface.find_entities_filtered({area = state.abs_area(mining_box), type = "resource"})
+        local entities = state.surface.find_entities_filtered({area = abs_area(state, mining_box), type = "resource"})
         
         for k, entity in pairs(entities) do
             if not table.contains(state.ore_names, entity.name) and entity.prototype.resource_category == "basic-solid" then
@@ -237,7 +244,7 @@ function place_miner(state)
     if state.conf.check_for_ore then
         local radius = state.conf.miner_width / 2 - 0.2
         local mining_box = {left_top = {x = x - radius, y = y - radius}, right_bottom = {x = x + radius, y = y + radius}}
-        local entities = state.surface.find_entities_filtered({area = state.abs_area(mining_box), type = "resource"})
+        local entities = state.surface.find_entities_filtered({area = abs_area(state, mining_box), type = "resource"})
         local found_ore = false
         for k, entity in pairs(entities) do
             if table.contains(state.ore_names, entity.name) then
@@ -502,6 +509,44 @@ function placement_tick(state)
     state.stages[state.stage + 1](state)
 end
 
+
+function abs_xy(state, x, y)
+    if state.conf.direction == defines.direction.east then
+        return x + state.left, y + state.top
+    elseif state.conf.direction == defines.direction.south then
+        return state.right - y, state.top + x
+    elseif state.conf.direction == defines.direction.west then
+        return state.right - x, state.bottom - y
+    elseif state.conf.direction == defines.direction.north then
+        return y + state.left, state.bottom - x
+    end
+end
+
+function abs_position(state, pos)
+    if pos.x then
+        local x, y = abs_xy(state, pos.x, pos.y)
+        return {x = x, y = y}
+    else
+        local x, y = abs_xy(state, pos[1], pos[2])
+        return {x = x, y = y}
+    end
+end
+
+function abs_area(state, area)
+    local x1, y1 = abs_xy(state, area.left_top.x, area.left_top.y)
+    local x2, y2 = abs_xy(state, area.right_bottom.x, area.right_bottom.y)
+    return {left_top = {x = math.min(x1, x2), y = math.min(y1, y2)}, right_bottom = {x = math.max(x1, x2), y = math.max(y1, y2)}}
+end
+
+function abs_direction(state, direction)
+    if direction then
+        return (direction + state.direction_modifier) % 8
+    else
+        return nil
+    end
+end
+
+
 function on_selected_area(event, deconstruct_friendly)
     local player = game.players[event.player_index]
     local surface = player.surface
@@ -531,7 +576,6 @@ function on_selected_area(event, deconstruct_friendly)
     end
 
 
-    -- FIXME
     local bounding_box = find_bounding_box(event.entities, ore_names)
     
     local top = bounding_box.left_top.y
@@ -569,42 +613,8 @@ function on_selected_area(event, deconstruct_friendly)
     end
     local electric_poles_per_row = math.ceil((row_length - (pole_indent - pole_spacing/2)*2) / pole_spacing)
     local place_poles_in_rows = pole_prototype.max_wire_distance < row_height
-    local abs_xy = function(x, y)
-        if conf.direction == defines.direction.east then
-            return x + left, y + top
-        elseif conf.direction == defines.direction.south then
-            return right - y, top + x
-        elseif conf.direction == defines.direction.west then
-            return right - x, bottom - y
-        elseif conf.direction == defines.direction.north then
-            return y + left, bottom - x
-        end
-    end
-    
-    local abs_position = function(pos)
-        if pos.x then
-            local x, y = abs_xy(pos.x, pos.y)
-            return {x = x, y = y}
-        else
-            local x, y = abs_xy(pos[1], pos[2])
-            return {x = x, y = y}
-        end
-    end
-    
-    local abs_area = function(area)
-        local x1, y1 = abs_xy(area.left_top.x, area.left_top.y)
-        local x2, y2 = abs_xy(area.right_bottom.x, area.right_bottom.y)
-        return {left_top = {x = math.min(x1, x2), y = math.min(y1, y2)}, right_bottom = {x = math.max(x1, x2), y = math.max(y1, y2)}}
-    end
-    
+
     local direction_modifier = conf.direction - 2
-    local abs_direction = function(direction)
-        if direction then
-            return (direction + direction_modifier) % 8
-        else
-            return nil
-        end
-    end
     
     -- See https://wiki.factorio.com/Mining
     local miner_prototype = game.entity_prototypes[conf.miner_name]
@@ -628,6 +638,10 @@ function on_selected_area(event, deconstruct_friendly)
     local state = {
         stage = 0,
         count = 0,
+        left = left,
+        top = top,
+        right = right,
+        bottom = bottom,
         width = width,
         height = height,
         player = player,
@@ -649,10 +663,7 @@ function on_selected_area(event, deconstruct_friendly)
         conf = conf,
         stages = stages,
         fluid = fluid,
-        abs_xy = abs_xy,
-        abs_position = abs_position,
-        abs_area = abs_area,
-        abs_direction = abs_direction,
+        direction_modifier = direction_modifier,
         miner_res_per_sec = miner_res_per_sec,
         transport_belts = transport_belts,
         fastest_belt_speed = transport_belts[#transport_belts].speed,

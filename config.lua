@@ -36,6 +36,7 @@ end
 
 function reset_all()
     global.OB_CONF_overrides = {}
+    global.AM_states = {}
 end
 
 function set_config_global(new_conf)
