@@ -226,7 +226,7 @@ function count_button_click(event)
     local count_button = frame_flow.OutpostBuilderWindow.OutpostBuilderOutputRowsButton
     local item_stack = player.cursor_stack
     local new_count
-    if item_stack and item_stack.valid and item_stack.valid_for_read then
+    if item_stack and item_stack.valid and item_stack.valid_for_read and item_stack.prototype.stack_size > 1 then
         new_count = item_stack.count
     else
         local index = table.contains(gui.output_counts, conf.output_belt_count)

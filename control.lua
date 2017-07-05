@@ -603,6 +603,7 @@ function on_selected_area(event, deconstruct_friendly)
         set_config(player, {used_before = true})
     end
     
+    -- TODO: Split this and bounding box to be done over multiple ticks.
     local ore_names = find_ore(event.entities)
     if ore_names == nil then
         player.print({"outpost-builder.no-ore"})
