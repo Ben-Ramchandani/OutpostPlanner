@@ -95,10 +95,6 @@ function place_entity(state, data)
     if state.conf.check_collision then
         local box = rotate_box(game.entity_prototypes[data.name].collision_box, data.direction)
         local position = data.position
-        -- if not box.left_top then
-        --     game.print(serpent.block(box))
-        --     game.print(serpent.block(data))
-        -- end
 
         local colliding = state.surface.find_entities_filtered({area = {{position.x + box.left_top.x, position.y + box.left_top.y}, {position.x + box.right_bottom.x, position.y + box.right_bottom.y}}})
         for i, entity in ipairs(colliding) do
@@ -107,6 +103,7 @@ function place_entity(state, data)
                 prototype = entity.ghost_prototype
             end
             if prototype.collision_box and prototype.collision_mask and prototype.collision_mask["object-layer"] and not entity.to_be_deconstructed(state.force) and entity.name ~= "player" and entity.type ~= "car" then
+                state.had_collision = true
                 return 
             end
         end
@@ -114,6 +111,7 @@ function place_entity(state, data)
             for y = math.floor(position.y + box.left_top.y), math.ceil(position.y + box.right_bottom.y - 1) do
                 local tile_prototype = state.surface.get_tile(x, y).prototype
                 if tile_prototype.collision_mask and tile_prototype.collision_mask["water-tile"] then
+                    state.had_collision = true
                     return 
                 end
             end
@@ -220,12 +218,12 @@ function deconstruct(state)
         extra_space = 0
     else
         local number_of_merges = math.max(0, state.num_rows - state.conf.output_belt_count)
-        extra_space = number_of_merges + state.conf.output_belt_count
+        extra_space = number_of_merges + math.min(state.conf.output_belt_count, state.num_rows)
     end
     if state.fluid then
         extra_space = extra_space + 1
     end
-    local box = {left_top = {x = -2, y = -2}, right_bottom = {x = state.width + 3 + extra_space, y = math.max(state.height + 3, state.row_height * state.num_half_rows / 2 + 1)}}
+    local box = {left_top = {x = -2, y = -2}, right_bottom = {x = state.width + 2 + extra_space, y = math.max(state.height + 3, state.row_height * state.num_half_rows / 2 + 1)}}
     
     local entities
     if state.deconstruct_friendly then
