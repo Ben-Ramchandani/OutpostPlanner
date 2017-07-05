@@ -73,14 +73,33 @@ function place_blueprint(surface, data)
     surface.create_entity(data)
 end
 
+function rotate_box(box, direction)
+    if not direction or direction == defines.direction.north then
+        return box
+    elseif direction == defines.direction.east then
+        return {left_top = {x = - box.right_bottom.y, y = box.left_top.x}, right_bottom = {x = - box.left_top.y, y = box.right_bottom.x}}
+    elseif direction == defines.direction.south then
+        return {left_top = {x = - box.right_bottom.x, y = - box.right_bottom.y}, right_bottom = {x = - box.left_top.x, y = - box.left_top.y}}
+    elseif direction == defines.direction.west then
+        return {left_top = {x = box.left_top.y, y = - box.right_bottom.x}, right_bottom = {x = box.right_bottom.y, y = - box.left_top.x}}
+    end
+end
+
+
+
 function place_entity(state, data)
     data.force = state.force
     data.position = abs_position(state, data.position)
     data.direction = abs_direction(state, data.direction)
 
     if state.conf.check_collision then
-        local box = game.entity_prototypes[data.name].collision_box
+        local box = rotate_box(game.entity_prototypes[data.name].collision_box, data.direction)
         local position = data.position
+        -- if not box.left_top then
+        --     game.print(serpent.block(box))
+        --     game.print(serpent.block(data))
+        -- end
+
         local colliding = state.surface.find_entities_filtered({area = {{position.x + box.left_top.x, position.y + box.left_top.y}, {position.x + box.right_bottom.x, position.y + box.right_bottom.y}}})
         for i, entity in ipairs(colliding) do
             local prototype = entity.prototype
