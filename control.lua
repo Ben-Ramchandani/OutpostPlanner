@@ -85,17 +85,6 @@ function place_entity(state, data)
         local box = rotate_box(game.entity_prototypes[data.name].collision_box, data.direction)
         local position = data.position
 
-        local colliding = state.surface.find_entities_filtered({area = {{position.x + box.left_top.x, position.y + box.left_top.y}, {position.x + box.right_bottom.x, position.y + box.right_bottom.y}}})
-        for i, entity in ipairs(colliding) do
-            local prototype = entity.prototype
-            if entity.name == "entity-ghost" and entity.ghost_type ~= "tile" then
-                prototype = entity.ghost_prototype
-            end
-            if prototype.collision_box and prototype.collision_mask and prototype.collision_mask["object-layer"] and not entity.to_be_deconstructed(state.force) and entity.name ~= "player" and entity.type ~= "car" then
-                state.had_collision = true
-                return 
-            end
-        end
         for x = math.floor(position.x + box.left_top.x), math.ceil(position.x + box.right_bottom.x - 1) do
             for y = math.floor(position.y + box.left_top.y), math.ceil(position.y + box.right_bottom.y - 1) do
                 local tile_prototype = state.surface.get_tile(x, y).prototype
@@ -105,6 +94,21 @@ function place_entity(state, data)
                 end
             end
         end
+
+        local colliding = state.surface.find_entities_filtered({area = {{position.x + box.left_top.x, position.y + box.left_top.y}, {position.x + box.right_bottom.x, position.y + box.right_bottom.y}}})
+        for i, entity in ipairs(colliding) do
+            local prototype = entity.prototype
+            if entity.name == "entity-ghost" and entity.ghost_type ~= "tile" then
+                prototype = entity.ghost_prototype
+            end
+            if prototype.collision_box and prototype.collision_mask and prototype.collision_mask["object-layer"] and not entity.to_be_deconstructed(state.force) and entity.name ~= "player" and entity.type ~= "car" then
+                if not ((entity.force.name == "neutral" or state.deconstruct_friendly) and entity.order_deconstruction(state.force)) then
+                    state.had_collision = true
+                    return
+                end
+            end
+        end
+
     end
     
     if state.conf.place_directly then
@@ -266,7 +270,7 @@ function stage.set_up_placement_stages(state)
 
         if state.conf.use_chest then
             state.use_chest = state.conf.use_chest
-            table.append_modify(state.stages, {stage.deconstruct, stage.place_miner, stage.place_pole, stage.place_chest})
+            table.append_modify(state.stages, {stage.place_miner, stage.place_pole, stage.place_chest})
             for i = 1, state.num_rows do
                 state.row_details[i] = {miner_count = 0, miner_count_below = 0, miner_count_above = 0, miner_positions = {}}
             end
@@ -292,7 +296,7 @@ function stage.set_up_placement_stages(state)
                 return (1 + state.force.mining_drill_productivity_bonus) * (miner_prototype.mining_power - ore_prototype.mineable_properties.hardness) * miner_prototype.mining_speed / ore_prototype.mineable_properties.mining_time
             end
             state.miner_res_per_sec = miner_res_per_sec_function(table.max(state.ore_names, miner_res_per_sec_function))
-            table.append_modify(state.stages, {stage.deconstruct, stage.place_miner, stage.place_pole, stage.place_belt, stage.remove_empty_rows, stage.merge_lanes, stage.collate_outputs})
+            table.append_modify(state.stages, {stage.place_miner, stage.place_pole, stage.place_belt, stage.remove_empty_rows, stage.merge_lanes, stage.collate_outputs})
             for i = 1, state.num_rows do
                 state.row_details[i] = {miner_count = 0, miner_count_below = 0, miner_count_above = 0, end_pos = nil}
             end
@@ -309,33 +313,6 @@ function stage.set_up_placement_stages(state)
         state.electric_poles_per_row = math.ceil((state.row_length - (state.pole_indent - state.pole_spacing / 2) * 2) / state.pole_spacing)
         state.place_poles_in_rows = pole_prototype.max_wire_distance < state.row_height
     end
-    return true
-end
-
-function stage.deconstruct(state)
-    local extra_space
-    if state.use_chest then
-        extra_space = 0
-    else
-        local number_of_merges = math.max(0, state.num_rows - state.conf.output_belt_count)
-        extra_space = number_of_merges + math.min(state.conf.output_belt_count, state.num_rows)
-    end
-    if state.fluid then
-        extra_space = extra_space + 1
-    end
-    local box = {left_top = {x = -2, y = -2}, right_bottom = {x = state.width + 2 + extra_space, y = math.max(state.height + 3, state.row_height * state.num_half_rows / 2 + 1)}}
-    
-    local entities
-    if state.deconstruct_friendly then
-        entities = state.surface.find_entities_filtered({area = abs_area(state, box)})
-    else
-        entities = state.surface.find_entities_filtered({area = abs_area(state, box), force = "neutral"})
-    end
-    
-    for k, e in pairs(entities) do
-        e.order_deconstruction(state.force)
-    end
-    
     return true
 end
 
