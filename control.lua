@@ -49,7 +49,7 @@ function find_ore(entities)
     end
 end
 
-function find_bounding_box(entities, names)
+function find_bounding_box_names(entities, names)
     local top = math.huge
     local left = math.huge
     local right = -math.huge
@@ -73,18 +73,6 @@ function place_blueprint(surface, data)
     surface.create_entity(data)
 end
 
-function rotate_box(box, direction)
-    if not direction or direction == defines.direction.north then
-        return box
-    elseif direction == defines.direction.east then
-        return {left_top = {x = - box.right_bottom.y, y = box.left_top.x}, right_bottom = {x = - box.left_top.y, y = box.right_bottom.x}}
-    elseif direction == defines.direction.south then
-        return {left_top = {x = - box.right_bottom.x, y = - box.right_bottom.y}, right_bottom = {x = - box.left_top.x, y = - box.left_top.y}}
-    elseif direction == defines.direction.west then
-        return {left_top = {x = box.left_top.y, y = - box.right_bottom.x}, right_bottom = {x = box.right_bottom.y, y = - box.left_top.x}}
-    end
-end
-
 
 
 function place_entity(state, data)
@@ -93,6 +81,7 @@ function place_entity(state, data)
     data.direction = abs_direction(state, data.direction)
 
     if state.conf.check_collision then
+        -- Manual collision check to avoid destroying ghosts.
         local box = rotate_box(game.entity_prototypes[data.name].collision_box, data.direction)
         local position = data.position
 
@@ -236,8 +225,7 @@ function deconstruct(state)
         e.order_deconstruction(state.force)
     end
     
-    state.stage = state.stage + 1
-    return 
+    return true
 end
 
 function place_miner(state)
@@ -245,9 +233,7 @@ function place_miner(state)
     local half_row = math.floor(state.count / state.miners_per_row)
     local row = math.floor(half_row / 2)
     if (half_row >= state.num_half_rows) then
-        state.stage = state.stage + 1
-        state.count = 0
-        return 
+        return true
     end
     local y = row * state.row_height + state.conf.miner_width / 2
     local direction
@@ -265,8 +251,7 @@ function place_miner(state)
         
         for k, entity in pairs(entities) do
             if not table.contains(state.ore_names, entity.name) and entity.prototype.resource_category == "basic-solid" then
-                state.count = state.count + 1
-                return 
+                return false
             end
         end
     end
@@ -283,8 +268,7 @@ function place_miner(state)
             end
         end
         if not found_ore then
-            state.count = state.count + 1
-            return 
+            return false
         end
     end
     
@@ -304,15 +288,13 @@ function place_miner(state)
             state.row_details[row + 1].miner_positions[state.count % state.miners_per_row] = true
         end
     end
-    state.count = state.count + 1
+    return false
 end
 
 function place_pole(state)
     local row = math.floor(state.count / state.electric_poles_per_row)
     if (row > state.num_half_rows / 2) then
-        state.stage = state.stage + 1
-        state.count = 0
-        return 
+        return true
     end
     
     local pole_num = state.count % state.electric_poles_per_row
@@ -324,12 +306,11 @@ function place_pole(state)
     local y = row * state.row_height - state.conf.pole_width / 2
     
     if pole_num > 0 and (row >= state.num_rows or state.row_details[row + 1].miner_count_above == 0) and (row < 1 or state.row_details[row].miner_count_below == 0) then
-        state.count = state.count + 1
-        return 
+        return false
     end
     
     place_entity(state, {position = {x, y}, name = state.conf.electric_pole})
-    state.count = state.count + 1
+    return false
 end
 
 function underground_pipe_bridge(state, underground_pipe, max_distance, x1, x2, y)
@@ -344,9 +325,7 @@ end
 
 function place_pipes(state)
     if state.count >= state.num_half_rows then
-        state.stage = state.stage + 1
-        state.count = 0
-        return 
+        return true
     end
     
     local is_above_row = state.count % 2 == 0
@@ -377,14 +356,13 @@ function place_pipes(state)
         underground_pipe_bridge(state, underground_pipe, game.entity_prototypes[underground_pipe].max_underground_distance, last_miner_x, x - 1, y)
     end
     
-    state.count = state.count + 1
+    return false
 end
 
 function place_chest(state)
     local row = math.floor(state.count / state.miners_per_row)
     if row >= state.num_rows then
-        state.stage = state.stage + 1
-        return
+        return true
     end
     local miner_num = state.count % state.miners_per_row
     if state.row_details[row + 1].miner_positions[miner_num] then
@@ -393,15 +371,13 @@ function place_chest(state)
         place_entity(state, {position = {x = x, y = y}, name = state.use_chest})
     end
 
-    state.count = state.count + 1
+    return false
 end
 
 function place_belt(state)
     local row = math.floor(state.count / (state.row_length + 1))
     if row >= state.num_rows then
-        state.stage = state.stage + 1
-        state.count = 0
-        return 
+        return true
     end
     
     local x = (state.count % (state.row_length + 1)) + 0.5
@@ -411,25 +387,22 @@ function place_belt(state)
         if state.place_poles_in_rows then
             place_entity(state, {position = {x = x, y = y}, name = state.conf.electric_pole})
         end
-        state.count = state.count + 1
-        return 
+        return false
     end
     
     if state.row_details[row + 1].miner_count == 0 then
-        state.count = state.count + 1
-        return 
+        return false
     end
     
     if state.count % (state.row_length + 1) == state.row_length and not state.fluid then
-        state.count = state.count + 1
-        return 
+        return false
     end
     
     local pos = {x = x, y = y}
     local belt = choose_belt(state, state.row_details[row + 1])
     place_entity(state, {position = pos, name = belt, direction = defines.direction.east})
     state.row_details[row + 1].end_pos = pos
-    state.count = state.count + 1
+    return false
 end
 
 function remove_empty_rows(state)
@@ -444,15 +417,14 @@ function remove_empty_rows(state)
     end
     if state.num_rows == 0 then
         state.stage = 1000
-        return 
+        return true
     end
-    state.stage = state.stage + 1
+    return true
 end
 
 function merge_lanes(state)
     if state.num_rows <= state.conf.output_belt_count then
-        state.stage = state.stage + 1
-        return 
+        return true
     end
     
     -- Merge the lanes with the fewest miners
@@ -509,8 +481,7 @@ end
 function collate_outputs(state) -- Move the outputs to be adjacent.
     local row = table.remove(state.row_details)
     if row == nil then
-        state.stage = state.stage + 1
-        return 
+        return true
     end
     local belt = row.belt
     
@@ -552,7 +523,16 @@ function collate_outputs(state) -- Move the outputs to be adjacent.
 end
 
 function placement_tick(state)
-    state.stages[state.stage + 1](state)
+    local res = state.stages[state.stage + 1](state)
+    if res == true then
+        state.stage = state.stage + 1
+        state.count = 0
+    elseif res then
+        state.stage = res
+        state.count = 0
+    else
+        state.count = state.count + 1
+    end
 end
 
 function abs_xy(state, x, y)
@@ -610,27 +590,6 @@ function on_selected_area(event, deconstruct_friendly)
         return 
     end
 
-    local transport_belts, use_chest, fastest_belt_speed
-    if conf.use_chest then
-        use_chest = conf.use_chest
-        stages = {deconstruct, place_miner, place_pole, place_chest}
-    else
-        transport_belts = table.map(
-            conf.transport_belts,
-            function(belt)
-                return {name = belt, speed = game.entity_prototypes[belt].belt_speed}
-            end
-        )
-        table.sort(
-            transport_belts,
-            function(a, b)
-                return a.speed < b.speed
-            end
-        )
-        fastest_belt_speed = transport_belts[#transport_belts].speed
-    end
-    
-    local by_product = false
     local fluid = false
     for i, name in ipairs(ore_names) do
         if game.entity_prototypes[name].mineable_properties.required_fluid and conf.miner_width == 3 then
@@ -639,8 +598,8 @@ function on_selected_area(event, deconstruct_friendly)
             break
         end
     end
-    
-    local bounding_box = find_bounding_box(event.entities, ore_names)
+
+    local bounding_box = find_bounding_box_names(event.entities, ore_names)
     
     local top = bounding_box.left_top.y
     local left = bounding_box.left_top.x
@@ -657,6 +616,12 @@ function on_selected_area(event, deconstruct_friendly)
         width = right - left
         height = bottom - top
     end
+
+    local direction_modifier = conf.direction - 2
+
+
+
+
     
     local row_height = conf.miner_width * 2 + conf.pole_width + 1
     local num_rows = math.ceil(height / row_height) -- Number of rows of belt
@@ -664,28 +629,48 @@ function on_selected_area(event, deconstruct_friendly)
     
     local miners_per_row = math.ceil(width / conf.miner_width)
     local row_length = miners_per_row * conf.miner_width
-    
-    local pole_prototype = game.entity_prototypes[conf.electric_pole]
-    local pole_spacing
-    -- I'm not sure this formula is perfect, but it works for all the vanilla poles.
-    if pole_prototype.max_wire_distance - 2 * pole_prototype.supply_area_distance <= conf.miner_width then
-        pole_spacing = math.floor(pole_prototype.max_wire_distance)
-    else
-        pole_spacing = math.floor(math.max(conf.miner_width * 2, math.min(pole_prototype.max_wire_distance, math.ceil(conf.miner_width + 2 * pole_prototype.supply_area_distance - 1))))
+
+    local transport_belts, use_chest, fastest_belt_speed, pole_spacing, pole_indent, electric_poles_per_row, place_poles_in_rows, miner_res_per_sec
+
+    if not conf.blueprint_entities then
+        if conf.use_chest then
+            use_chest = conf.use_chest
+            stages = {deconstruct, place_miner, place_pole, place_chest}
+        else
+            transport_belts = table.map(
+                conf.transport_belts,
+                function(belt)
+                    return {name = belt, speed = game.entity_prototypes[belt].belt_speed}
+                end
+            )
+            table.sort(
+                transport_belts,
+                function(a, b)
+                    return a.speed < b.speed
+                end
+            )
+            fastest_belt_speed = transport_belts[#transport_belts].speed
+        end
+        
+        local pole_prototype = game.entity_prototypes[conf.electric_pole]
+        -- I'm not sure this formula is perfect, but it works for all the vanilla poles.
+        if pole_prototype.max_wire_distance - 2 * pole_prototype.supply_area_distance <= conf.miner_width then
+            pole_spacing = math.floor(pole_prototype.max_wire_distance)
+        else
+            pole_spacing = math.floor(math.max(conf.miner_width * 2, math.min(pole_prototype.max_wire_distance, math.ceil(conf.miner_width + 2 * pole_prototype.supply_area_distance - 1))))
+        end
+        pole_indent = math.floor(pole_prototype.supply_area_distance + conf.miner_width) - conf.pole_width / 2
+        electric_poles_per_row = math.ceil((row_length - (pole_indent - pole_spacing / 2) * 2) / pole_spacing)
+        place_poles_in_rows = pole_prototype.max_wire_distance < row_height
+        
+        -- See https://wiki.factorio.com/Mining
+        local miner_prototype = game.entity_prototypes[conf.miner_name]
+        function miner_res_per_sec_function(ore_name)
+            ore_prototype = game.entity_prototypes[ore_name]
+            return (1 + force.mining_drill_productivity_bonus) * (miner_prototype.mining_power - ore_prototype.mineable_properties.hardness) * miner_prototype.mining_speed / ore_prototype.mineable_properties.mining_time
+        end
+        miner_res_per_sec = miner_res_per_sec_function(table.max(ore_names, miner_res_per_sec_function))
     end
-    local pole_indent = math.floor(pole_prototype.supply_area_distance + conf.miner_width) - conf.pole_width / 2
-    local electric_poles_per_row = math.ceil((row_length - (pole_indent - pole_spacing / 2) * 2) / pole_spacing)
-    local place_poles_in_rows = pole_prototype.max_wire_distance < row_height
-    
-    local direction_modifier = conf.direction - 2
-    
-    -- See https://wiki.factorio.com/Mining
-    local miner_prototype = game.entity_prototypes[conf.miner_name]
-    local miner_res_per_sec_function = function(ore_name)
-        ore_prototype = game.entity_prototypes[ore_name]
-        return (1 + force.mining_drill_productivity_bonus) * (miner_prototype.mining_power - ore_prototype.mineable_properties.hardness) * miner_prototype.mining_speed / ore_prototype.mineable_properties.mining_time
-    end
-    local miner_res_per_sec = miner_res_per_sec_function(table.max(ore_names, miner_res_per_sec_function))
     
     local state = {
         stage = 0,
@@ -711,7 +696,6 @@ function on_selected_area(event, deconstruct_friendly)
         electric_pole_indent = pole_indent,
         place_poles_in_rows = place_poles_in_rows,
         ore_names = ore_names,
-        by_product = by_product,
         conf = conf,
         stages = stages,
         fluid = fluid,

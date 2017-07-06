@@ -47,8 +47,6 @@ function set_config_global(new_conf)
     end
 end
 
-remote.add_interface("OutpostBuilder", {reset = reset_all, config = set_config_global})
-
 function validate_config(partialConf, player)
     if partialConf.miner_name then
         if not game.entity_prototypes[partialConf.miner_name] or (not game.entity_prototypes[partialConf.miner_name].type == "mining-drill") then
@@ -78,6 +76,18 @@ function validate_config(partialConf, player)
             return false
         end
     end
+    if partialConf.blueprint_entities then
+        for k, entity in pairs(partialConf.blueprint_entities) do
+            if not game.entity_prototypes[entity.name] then
+                return false
+            end
+        end
+    end
+    if partialConf.leaving_belt then
+        if not partialConf.leaving_belt.name or game.entity_prototypes[partialConf.leaving_belt.name].type ~= "underground-belt" or not game.entity_prototypes[underground_to_belt(partialConf.leaving_belt.name)] or game.entity_prototypes[underground_to_belt(partialConf.leaving_belt.name)].type ~= "transport-belt" then
+            return false
+        end
+    end
     return true
 end
 
@@ -97,6 +107,8 @@ function init_config()
         global.OB_CONF_overrides = {}
     end
 end
+
+remote.add_interface("OutpostBuilder", {reset = reset_all, config = set_config_global, validate = init_config})
 
 ON_INIT = ON_INIT or {}
 table.insert(ON_INIT, init_config)
