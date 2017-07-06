@@ -232,6 +232,7 @@ end
 
 function stage.bounding_box(state)
     local bounding_box = find_bounding_box_names(state.event_entities, state.ore_names)
+    -- No longer needed, drop for garbage collection.
     state.event_entities = nil
     
     state.top = bounding_box.left_top.y
@@ -258,15 +259,15 @@ function stage.set_up_placement_stages(state)
 
     else
         state.row_height = state.conf.miner_width * 2 + state.conf.pole_width + 1
-        state.num_rows = math.ceil(height / state.row_height) -- Number of rows of belt
-        state.num_half_rows = math.ceil(2 * height / state.row_height) -- Number of rows of miners
-        state.miners_per_row = math.ceil(width / state.conf.miner_width)
+        state.num_rows = math.ceil(state.height / state.row_height) -- Number of rows of belt
+        state.num_half_rows = math.ceil(2 * state.height / state.row_height) -- Number of rows of miners
+        state.miners_per_row = math.ceil(state.width / state.conf.miner_width)
         state.row_length = state.miners_per_row * state.conf.miner_width
 
         if state.conf.use_chest then
             state.use_chest = state.conf.use_chest
-            table.append_modify(stages, {stage.deconstruct, stage.place_miner, stage.place_pole, stage.place_chest})
-            for i = 1, num_rows do
+            table.append_modify(state.stages, {stage.deconstruct, stage.place_miner, stage.place_pole, stage.place_chest})
+            for i = 1, state.num_rows do
                 state.row_details[i] = {miner_count = 0, miner_count_below = 0, miner_count_above = 0, miner_positions = {}}
             end
         else
@@ -282,7 +283,19 @@ function stage.set_up_placement_stages(state)
                     return a.speed < b.speed
                 end
             )
-            fastest_belt_speed = state.transport_belts[#state.transport_belts].speed
+            state.fastest_belt_speed = state.transport_belts[#state.transport_belts].speed
+
+            -- See https://wiki.factorio.com/Mining
+            local miner_prototype = game.entity_prototypes[state.conf.miner_name]
+            function miner_res_per_sec_function(ore_name)
+                ore_prototype = game.entity_prototypes[ore_name]
+                return (1 + state.force.mining_drill_productivity_bonus) * (miner_prototype.mining_power - ore_prototype.mineable_properties.hardness) * miner_prototype.mining_speed / ore_prototype.mineable_properties.mining_time
+            end
+            state.miner_res_per_sec = miner_res_per_sec_function(table.max(state.ore_names, miner_res_per_sec_function))
+            table.append_modify(state.stages, {stage.deconstruct, stage.place_miner, stage.place_pole, stage.place_belt, stage.remove_empty_rows, stage.merge_lanes, stage.collate_outputs})
+            for i = 1, state.num_rows do
+                state.row_details[i] = {miner_count = 0, miner_count_below = 0, miner_count_above = 0, end_pos = nil}
+            end
         end
         
         local pole_prototype = game.entity_prototypes[state.conf.electric_pole]
@@ -293,20 +306,8 @@ function stage.set_up_placement_stages(state)
             state.pole_spacing = math.floor(math.max(state.conf.miner_width * 2, math.min(pole_prototype.max_wire_distance, math.ceil(state.conf.miner_width + 2 * pole_prototype.supply_area_distance - 1))))
         end
         state.pole_indent = math.floor(pole_prototype.supply_area_distance + state.conf.miner_width) - state.conf.pole_width / 2
-        state.electric_poles_per_row = math.ceil((row_length - (state.pole_indent - state.pole_spacing / 2) * 2) / state.pole_spacing)
-        state.place_poles_in_rows = pole_prototype.max_wire_distance < row_height
-        
-        -- See https://wiki.factorio.com/Mining
-        local miner_prototype = game.entity_prototypes[state.conf.miner_name]
-        function miner_res_per_sec_function(ore_name)
-            ore_prototype = game.entity_prototypes[ore_name]
-            return (1 + force.mining_drill_productivity_bonus) * (miner_prototype.mining_power - ore_prototype.mineable_properties.hardness) * miner_prototype.mining_speed / ore_prototype.mineable_properties.mining_time
-        end
-        state.miner_res_per_sec = miner_res_per_sec_function(table.max(ore_names, miner_res_per_sec_function))
-        table.append_modify(stages, {stage.deconstruct, stage.place_miner, stage.place_pole, stage.place_belt, stage.remove_empty_rows, stage.merge_lanes, stage.collate_outputs})
-        for i = 1, num_rows do
-            state.row_details[i] = {miner_count = 0, miner_count_below = 0, miner_count_above = 0, end_pos = nil}
-        end
+        state.electric_poles_per_row = math.ceil((state.row_length - (state.pole_indent - state.pole_spacing / 2) * 2) / state.pole_spacing)
+        state.place_poles_in_rows = pole_prototype.max_wire_distance < state.row_height
     end
     return true
 end
@@ -409,7 +410,7 @@ function stage.place_pole(state)
     
     local pole_num = state.count % state.electric_poles_per_row
     
-    local x = state.electric_pole_indent + pole_num * state.electric_pole_spacing
+    local x = state.pole_indent + pole_num * state.pole_spacing
     if x >= state.row_length then
         x = state.row_length - state.conf.pole_width / 2
     end
@@ -706,7 +707,8 @@ function on_selected_area(event, deconstruct_friendly)
         output_rows = {},
         conf = conf,
         stages = stages,
-        deconstruct_friendly = deconstruct_friendly
+        deconstruct_friendly = deconstruct_friendly,
+        total_miners = 0
     }
     
     if conf.run_over_multiple_ticks then
