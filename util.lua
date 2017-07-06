@@ -88,6 +88,12 @@ function table.apply(t, func)
     end
 end
 
+function table.append_modify(t1, t2)
+    for i, v in ipairs(t2) do
+        table.insert(t1, v)
+    end
+end
+
 function belt_to_splitter(belt)
     return string.gsub(belt, "(.*)transport%-belt", "%1splitter")
 end
