@@ -23,8 +23,8 @@ function get_config(player)
     local pole_prototype = game.entity_prototypes[conf.electric_pole]
     conf.pole_width = math.ceil(math.max(pole_prototype.collision_box.right_bottom.x - pole_prototype.collision_box.left_top.y, pole_prototype.collision_box.right_bottom.x - pole_prototype.collision_box.left_top.y))
     local miner_prototype = game.entity_prototypes[conf.miner_name]
-    conf.miner_width = math.ceil(math.max(miner_prototype.collision_box.right_bottom.x - miner_prototype.collision_box.left_top.y, miner_prototype.collision_box.right_bottom.x - miner_prototype.collision_box.left_top.y))
-    conf.miner_area = miner_prototype.mining_drill_radius * 2
+    conf.miner_width = math.ceil(math.max(miner_prototype.collision_box.right_bottom.x - miner_prototype.collision_box.left_top.x, miner_prototype.collision_box.right_bottom.y - miner_prototype.collision_box.left_top.y))
+    --conf.miner_area = miner_prototype.mining_drill_radius * 2
     return conf
 end
 

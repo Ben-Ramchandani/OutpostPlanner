@@ -19,6 +19,18 @@ function table.clone(org)
     return copy
 end
 
+function table.deep_clone(org)
+    local copy = {}
+    for k, v in pairs(org) do
+        if type(v) == "table" then
+            copy[k] = table.deep_clone(v)
+        else
+            copy[k] = v
+        end
+    end
+    return copy
+end
+
 function dict_to_array(dict)
     local array = {}
     for k, v in pairs(dict) do
@@ -94,6 +106,29 @@ function table.append_modify(t1, t2)
     end
 end
 
+function table.find(t, func)
+    if not t then
+        return nil
+    end
+    for i, v in ipairs(t) do
+        if func(v) then
+            return i
+        end
+    end
+    return nil
+end
+
+function table.remove_all(t, func)
+    local i = 1
+    while i <= #t do
+        if func(t[i]) then
+            table.remove(t, i)
+        else
+            i = i + 1
+        end
+    end
+end
+
 function belt_to_splitter(belt)
     return string.gsub(belt, "(.*)transport%-belt", "%1splitter")
 end
@@ -108,11 +143,11 @@ end
 
 function rotate_box(box, direction)
     if direction == defines.direction.east then
-        return {left_top = {x = - box.right_bottom.y, y = box.left_top.x}, right_bottom = {x = - box.left_top.y, y = box.right_bottom.x}}
+        return {left_top = {x = -box.right_bottom.y, y = box.left_top.x}, right_bottom = {x = -box.left_top.y, y = box.right_bottom.x}}
     elseif direction == defines.direction.south then
-        return {left_top = {x = - box.right_bottom.x, y = - box.right_bottom.y}, right_bottom = {x = - box.left_top.x, y = - box.left_top.y}}
+        return {left_top = {x = -box.right_bottom.x, y = -box.right_bottom.y}, right_bottom = {x = -box.left_top.x, y = -box.left_top.y}}
     elseif direction == defines.direction.west then
-        return {left_top = {x = box.left_top.y, y = - box.right_bottom.x}, right_bottom = {x = box.right_bottom.y, y = - box.left_top.x}}
+        return {left_top = {x = box.left_top.y, y = -box.right_bottom.x}, right_bottom = {x = box.right_bottom.y, y = -box.left_top.x}}
     else
         return box
     end
@@ -160,3 +195,38 @@ function find_leaving_belt(entities, width)
     return nil
 end
 
+function overlap_by_y(entities, height)
+    local poles = {}
+    for k, entity in pairs(entities) do
+        local prototype = game.entity_prototypes[entity.name]
+        local min_y, max_y = entity.position.y, entity.position.y
+        if prototype.collision_box then
+            local box = rotate_box(prototype.collision_box)
+            min_y = min_y + box.left_top.y
+            max_y = max_y + box.right_bottom.y
+        end
+        if min_y < 1 or max_y > height - 1 then
+            if prototype.type ~= "electric-pole" then
+                return 0
+            else
+                table.insert(poles, entity)
+            end
+        end
+    end
+    
+    while #poles > 0 do
+        local pole = table.remove(poles)
+        local symmetric_pole_index = table.find(
+            poles,
+            function(p)
+                return p.position.x == pole.position.x and ((p.position.y == 0.5 and pole.position.y == height - 0.5) or (p.position.y == height - 0.5 and pole.position.y == 0.5))
+            end
+        )
+        if symmetric_pole_index then
+            table.remove(poles, symmetric_pole_index)
+        else
+            return 0
+        end
+    end
+    return 1
+end

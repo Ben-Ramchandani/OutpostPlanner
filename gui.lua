@@ -265,8 +265,10 @@ function blueprint_button_click(event)
         )
         local width = math.ceil(bounding_box.right_bottom.x + shift_x)
         local height = math.ceil(bounding_box.right_bottom.y + shift_y)
+        height = height - overlap_by_y(entities, height)
+        table.remove_all(entities, function(e) return e.name == "wooden-chest" end)
         local leaving_belt = find_leaving_belt(entities, width)
-        if game.entity_prototypes[leaving_belt.name].type == "underground-belt" and not game.entity_prototypes[underground_to_belt(leaving_belt.name)] then
+        if leaving_belt and game.entity_prototypes[leaving_belt.name].type == "underground-belt" and not game.entity_prototypes[underground_to_belt(leaving_belt.name)] then
             leaving_belt = nil
         end
         set_config(player, {blueprint_entities = entities, blueprint_width = width, blueprint_height = height, leaving_belt = leaving_belt})

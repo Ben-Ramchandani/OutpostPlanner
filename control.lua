@@ -70,7 +70,10 @@ function place_blueprint(surface, data)
     data.inner_name = data.name
     data.name = "entity-ghost"
     data.expires = false
-    surface.create_entity(data)
+    local entity = surface.create_entity(data)
+    if entity and data.items then
+        entity.item_requests = data.items
+    end
 end
 
 
@@ -90,7 +93,7 @@ function place_entity(state, data)
                 local tile_prototype = state.surface.get_tile(x, y).prototype
                 if tile_prototype.collision_mask and tile_prototype.collision_mask["water-tile"] then
                     state.had_collision = true
-                    return 
+                    return false
                 end
             end
         end
@@ -104,13 +107,12 @@ function place_entity(state, data)
             if prototype.collision_box and prototype.collision_mask and prototype.collision_mask["object-layer"] and not entity.to_be_deconstructed(state.force) and entity.name ~= "player" and entity.type ~= "car" then
                 if not ((entity.force.name == "neutral" or state.deconstruct_friendly) and entity.order_deconstruction(state.force)) then
                     state.had_collision = true
-                    return
+                    return false
                 end
             end
         end
-
     end
-    
+
     if state.conf.place_directly then
         if state.surface.can_place_entity(data) then
             if state.conf.drain_inventory then
@@ -119,8 +121,9 @@ function place_entity(state, data)
                 else
                     if state.conf.place_blueprint_on_out_of_inventory then
                         place_blueprint(state.surface, data)
+                    else
+                        return false
                     end
-                    return false
                 end
             end
             state.surface.create_entity(data)
@@ -139,7 +142,9 @@ function on_error(state)
 end
 
 function choose_belt(state, row_details)
-    if row_details.belt then
+    if state.leaving_belt then
+        return state.leaving_belt.name
+    elseif row_details.belt then
         return row_details.belt
     else
         -- Resources per sec from this row of miners
@@ -215,7 +220,7 @@ stage = {}
 function stage.find_ore(state)
     local ore_names = find_ore(state.event_entities)
     if ore_names == nil then
-        player.print({"outpost-builder.no-ore"})
+        state.player.print({"outpost-builder.no-ore"})
         return on_error(state)
     else
         state.ore_names = ore_names
@@ -258,8 +263,84 @@ function stage.bounding_box(state)
     return true
 end
 
+function stage.place_blueprint_entity(state)
+    local row = math.floor(state.count / state.entities_per_row)
+    if row >= state.num_rows then
+        return true
+    end
+
+    local count_in_row = state.count % state.entities_per_row
+    local column = math.floor(count_in_row / state.entities_per_blueprint)
+    local count_in_blueprint = count_in_row % state.entities_per_blueprint
+
+    local x = column * state.conf.blueprint_width
+    local y = row * state.conf.blueprint_height
+
+    local entity = table.deep_clone(state.conf.blueprint_entities[count_in_blueprint + 1])
+
+    entity.position.x = entity.position.x + x
+    entity.position.y = entity.position.y + y
+
+    local prototype =  game.entity_prototypes[entity.name]
+    if prototype.type == "mining-drill" then
+        if place_miner(state, table.deep_clone(entity)) then
+            state.row_details[row + 1].miner_count = state.row_details[row + 1].miner_count + 1
+        end
+    else
+        place_entity(state, entity)
+    end
+
+    return false
+end
+
+
+function stage.blueprint_end_pos(state)
+    for i, row_details in ipairs(state.row_details) do
+        local x = state.row_length - 0.5
+        local y = (i - 1) * state.conf.blueprint_height + state.leaving_belt.position.y
+        row_details.end_pos = {x = x, y = y}
+    end
+    return true
+end
+
+
+function stage.place_underground_belt(state)
+    if state.count >= state.num_rows then
+        return true
+    end
+    local position = state.row_details[state.count + 1].end_pos
+    position.x = position.x + 1
+    place_entity(state, {name = state.leaving_underground_belt_name, position = position, direction = defines.direction.east, type = "output"})
+    return false
+end
+
 function stage.set_up_placement_stages(state)
-    if state.blueprint_entities then
+    if state.conf.blueprint_entities then
+
+        state.blueprint_per_row = math.ceil(state.width / state.conf.blueprint_width)
+        state.num_rows = math.ceil(state.height / state.conf.blueprint_height)
+        state.row_length = state.blueprint_per_row * state.conf.blueprint_width
+        state.entities_per_blueprint = #state.conf.blueprint_entities
+        state.entities_per_row = state.entities_per_blueprint * state.blueprint_per_row
+
+        table.append_modify(state.stages, {stage.place_blueprint_entity})
+
+        if state.conf.leaving_belt then
+            table.append_modify(state.stages, {stage.blueprint_end_pos, stage.remove_empty_rows})
+            if game.entity_prototypes[state.conf.leaving_belt.name].type == "transport-belt" then
+                state.leaving_belt = state.conf.leaving_belt
+            else
+                state.leaving_underground_belt_name = state.conf.leaving_belt.name
+                state.leaving_belt = {name = underground_to_belt(state.conf.leaving_belt.name), position = state.conf.leaving_belt.position}
+                table.append_modify(state.stages, {stage.place_underground_belt})
+            end
+            state.leaving_belt_name = state.leaving_belt.name
+            table.append_modify(state.stages, {stage.merge_lanes, stage.collate_outputs})
+        end
+        
+        for i = 1, state.num_rows do
+            table.insert(state.row_details, {miner_count = 0, belt = state.leaving_belt_name})
+        end
 
     else
         state.row_height = state.conf.miner_width * 2 + state.conf.pole_width + 1
@@ -272,7 +353,7 @@ function stage.set_up_placement_stages(state)
             state.use_chest = state.conf.use_chest
             table.append_modify(state.stages, {stage.place_miner, stage.place_pole, stage.place_chest})
             for i = 1, state.num_rows do
-                state.row_details[i] = {miner_count = 0, miner_count_below = 0, miner_count_above = 0, miner_positions = {}}
+                table.insert(state.row_details, {miner_count = 0, miner_count_below = 0, miner_count_above = 0, miner_positions = {}})
             end
         else
             state.transport_belts = table.map(
@@ -298,7 +379,7 @@ function stage.set_up_placement_stages(state)
             state.miner_res_per_sec = miner_res_per_sec_function(table.max(state.ore_names, miner_res_per_sec_function))
             table.append_modify(state.stages, {stage.place_miner, stage.place_pole, stage.place_belt, stage.remove_empty_rows, stage.merge_lanes, stage.collate_outputs})
             for i = 1, state.num_rows do
-                state.row_details[i] = {miner_count = 0, miner_count_below = 0, miner_count_above = 0, end_pos = nil}
+                table.insert(state.row_details, {miner_count = 0, miner_count_below = 0, miner_count_above = 0, end_pos = nil})
             end
         end
         
@@ -314,6 +395,42 @@ function stage.set_up_placement_stages(state)
         state.place_poles_in_rows = pole_prototype.max_wire_distance < state.row_height
     end
     return true
+end
+
+function place_miner(state, data)--position, direction, mining_radius, miner_radius)
+    local x = data.position.x
+    local y = data.position.y
+    local prototype = game.entity_prototypes[data.name]
+
+    if state.conf.check_dirty_mining then
+        local radius = prototype.mining_drill_radius
+        local mining_box = {left_top = {x = x - radius, y = y - radius}, right_bottom = {x = x + radius, y = y + radius}}
+        local entities = state.surface.find_entities_filtered({area = abs_area(state, mining_box), type = "resource"})
+        
+        for k, entity in pairs(entities) do
+            if not table.contains(state.ore_names, entity.name) and entity.prototype.resource_category == "basic-solid" then
+                return false
+            end
+        end
+    end
+    
+    if state.conf.check_for_ore then
+        local radius = (prototype.collision_box.right_bottom.x - prototype.collision_box.left_top.x)/2 - 0.1
+        local mining_box = {left_top = {x = x - radius, y = y - radius}, right_bottom = {x = x + radius, y = y + radius}}
+        local entities = state.surface.find_entities_filtered({area = abs_area(state, mining_box), type = "resource"})
+        local found_ore = false
+        for k, entity in pairs(entities) do
+            if table.contains(state.ore_names, entity.name) then
+                found_ore = true
+                break
+            end
+        end
+        if not found_ore then
+            return false
+        end
+    end
+    
+    return place_entity(state, data)
 end
 
 function stage.place_miner(state)
@@ -332,37 +449,9 @@ function stage.place_miner(state)
         y = y + state.conf.miner_width + 1
     end
     
-    if state.conf.check_dirty_mining then
-        local radius = state.conf.miner_area / 2
-        local mining_box = {left_top = {x = x - radius, y = y - radius}, right_bottom = {x = x + radius, y = y + radius}}
-        local entities = state.surface.find_entities_filtered({area = abs_area(state, mining_box), type = "resource"})
-        
-        for k, entity in pairs(entities) do
-            if not table.contains(state.ore_names, entity.name) and entity.prototype.resource_category == "basic-solid" then
-                return false
-            end
-        end
-    end
-    
-    if state.conf.check_for_ore then
-        local radius = state.conf.miner_width / 2 - 0.2
-        local mining_box = {left_top = {x = x - radius, y = y - radius}, right_bottom = {x = x + radius, y = y + radius}}
-        local entities = state.surface.find_entities_filtered({area = abs_area(state, mining_box), type = "resource"})
-        local found_ore = false
-        for k, entity in pairs(entities) do
-            if table.contains(state.ore_names, entity.name) then
-                found_ore = true
-                break
-            end
-        end
-        if not found_ore then
-            return false
-        end
-    end
-    
     local position = {x = x, y = y}
     
-    if place_entity(state, {position = position, direction = direction, name = state.conf.miner_name}) then
+    if place_miner(state, {name = state.conf.miner_name, direction = direction, position = position}) then
         state.row_details[row + 1].miner_count = state.row_details[row + 1].miner_count + 1
         if direction == defines.direction.south then
             state.row_details[row + 1].last_miner_above = position
@@ -557,7 +646,12 @@ function stage.merge_lanes(state)
     
     place_entity(state, {position = {x = pos1.x, y = pos1.y}, name = belt1, direction = defines.direction.east})
     pos1.x = pos1.x + 1
-    state.row_details[min_index] = {miner_count = state.row_details[min_index].miner_count + state.row_details[min_index - 1].miner_count, miner_count_below = state.row_details[min_index].miner_count_below + state.row_details[min_index - 1].miner_count_below, miner_count_above = state.row_details[min_index].miner_count_above + state.row_details[min_index - 1].miner_count_above, end_pos = {x = pos1.x, y = pos1.y + 0.5}}
+    local new_miner_count_below, new_miner_count_above
+    if state.row_details[min_index].miner_count_below then
+        new_miner_count_below = state.row_details[min_index].miner_count_below + state.row_details[min_index - 1].miner_count_below
+        new_miner_count_above = state.row_details[min_index].miner_count_above + state.row_details[min_index - 1].miner_count_above
+    end
+    state.row_details[min_index] = {miner_count = state.row_details[min_index].miner_count + state.row_details[min_index - 1].miner_count, miner_count_below = new_miner_count_below, miner_count_above = new_miner_count_above, end_pos = {x = pos1.x, y = pos1.y + 0.5}}
     local belt = choose_belt(state, state.row_details[min_index])
     state.row_details[min_index].belt = belt
     state.num_rows = state.num_rows - 1
@@ -675,8 +769,6 @@ function on_selected_area(event, deconstruct_friendly)
         stage = 0,
         count = 0,
         event_entities = event.entities,
-        width = width,
-        height = height,
         player = player,
         force = force,
         surface = surface,
