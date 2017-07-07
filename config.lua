@@ -14,7 +14,8 @@ OB_CONF = {
     check_for_ore = true, -- For each miner, check there is some of the correct ore underneath it.
     check_dirty_mining = true, -- For each miner, check if any other ores are present in its mining area.
     check_collision = true,
-    run_over_multiple_ticks = true -- Place instantly or one at a time?
+    run_over_multiple_ticks = true, -- Place instantly or one at a time?
+    use_pole_builder = true --TODO remove
 }
 
 function get_config(player)

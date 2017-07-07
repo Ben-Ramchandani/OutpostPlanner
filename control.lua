@@ -74,6 +74,7 @@ function place_blueprint(surface, data)
     if entity and data.items then
         entity.item_requests = data.items
     end
+    return entity
 end
 
 
@@ -120,18 +121,18 @@ function place_entity(state, data)
                     state.player.remove_item({name = data.name, count = 1})
                 else
                     if state.conf.place_blueprint_on_out_of_inventory then
-                        place_blueprint(state.surface, data)
+                        return place_blueprint(state.surface, data)
                     else
-                        return false
+                        return nil
                     end
                 end
             end
-            state.surface.create_entity(data)
+            return state.surface.create_entity(data)
         elseif state.conf.place_blueprint_on_collision then
-            place_blueprint(state.surface, data)
+            return place_blueprint(state.surface, data)
         end
     else
-        place_blueprint(state.surface, data)
+        return place_blueprint(state.surface, data)
     end
     return true
 end
@@ -283,11 +284,18 @@ function stage.place_blueprint_entity(state)
 
     local prototype =  game.entity_prototypes[entity.name]
     if prototype.type == "mining-drill" then
-        if place_miner(state, table.deep_clone(entity)) then
+        local result = place_miner(state, table.deep_clone(entity))
+        if result then
             state.row_details[row + 1].miner_count = state.row_details[row + 1].miner_count + 1
+            if state.conf.use_pole_builder then
+                table.insert(state.placed_entities, result)
+            end
         end
     else
-        place_entity(state, entity)
+        local result = place_entity(state, entity)
+        if state.conf.use_pole_builder and result then
+            table.insert(state.placed_entities, result)
+        end
     end
 
     return false
@@ -314,12 +322,19 @@ function stage.place_underground_belt(state)
     return false
 end
 
+function stage.pole_builder_invoke(state)
+    area = {left_top = {x = state.left, y = state.top}, right_bottom = {x = state.left + state.row_length, y = state.top + state.total_height}}
+    remote.call("PoleBuilder", "invoke", {player = state.player, entities = state.placed_entities, pole = state.conf.electric_pole, area = area, padding = 1})
+    return true
+end
+
 function stage.set_up_placement_stages(state)
     if state.conf.blueprint_entities then
 
         state.blueprint_per_row = math.ceil(state.width / state.conf.blueprint_width)
         state.num_rows = math.ceil((state.height - 1) / state.conf.blueprint_height)
         state.row_length = state.blueprint_per_row * state.conf.blueprint_width
+        state.total_height = state.num_rows * state.conf.blueprint_height
         state.entities_per_blueprint = #state.conf.blueprint_entities
         state.entities_per_row = state.entities_per_blueprint * state.blueprint_per_row
 
@@ -336,6 +351,11 @@ function stage.set_up_placement_stages(state)
             end
             state.leaving_belt_name = state.leaving_belt.name
             table.append_modify(state.stages, {stage.merge_lanes, stage.collate_outputs})
+        end
+
+        if state.conf.use_pole_builder then
+            table.append_modify(state.stages, {stage.pole_builder_invoke})
+            state.placed_entities = {}
         end
         
         for i = 1, state.num_rows do
