@@ -318,7 +318,7 @@ function stage.set_up_placement_stages(state)
     if state.conf.blueprint_entities then
 
         state.blueprint_per_row = math.ceil(state.width / state.conf.blueprint_width)
-        state.num_rows = math.ceil(state.height / state.conf.blueprint_height)
+        state.num_rows = math.ceil((state.height - 1) / state.conf.blueprint_height)
         state.row_length = state.blueprint_per_row * state.conf.blueprint_width
         state.entities_per_blueprint = #state.conf.blueprint_entities
         state.entities_per_row = state.entities_per_blueprint * state.blueprint_per_row

@@ -259,6 +259,7 @@ function blueprint_button_click(event)
         table.apply(
             entities,
             function(entity)
+                entity.direction = entity.direction or 0
                 entity.position.x = entity.position.x + shift_x
                 entity.position.y = entity.position.y + shift_y
             end
