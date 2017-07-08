@@ -272,10 +272,13 @@ function blueprint_button_click(event)
         if leaving_belt and game.entity_prototypes[leaving_belt.name].type == "underground-belt" and not game.entity_prototypes[underground_to_belt(leaving_belt.name)] then
             leaving_belt = nil
         end
+        if not leaving_belt then
+            leaving_belt = false
+        end
         set_config(player, {blueprint_entities = entities, blueprint_width = width, blueprint_height = height, leaving_belt = leaving_belt})
     else
         player.print {"outpost-planner.no-blueprint"}
-        set_config(player, {blueprint_entities = nil, blueprint_width = nil, blueprint_height = nil, leaving_belt = nil})
+        set_config(player, {blueprint_entities = false, blueprint_width = false, blueprint_height = false, leaving_belt = false})
     end
 end
 
