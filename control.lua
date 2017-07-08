@@ -291,17 +291,21 @@ function place_miner(state)
     local position = {x = x, y = y}
     
     if place_entity(state, {position = position, direction = direction, name = state.conf.miner_name}) then
-        state.row_details[row + 1].miner_count = state.row_details[row + 1].miner_count + 1
+        local row_details = state.row_details[row + 1]
+        row_details.miner_count = row_details.miner_count + 1
         if direction == defines.direction.south then
-            state.row_details[row + 1].last_miner_above = position
-            state.row_details[row + 1].miner_count_above = state.row_details[row + 1].miner_count_above + 1
+            row_details.last_miner_above = position
+            row_details.miner_count_above = row_details.miner_count_above + 1
         else
-            state.row_details[row + 1].last_miner_below = position
-            state.row_details[row + 1].miner_count_below = state.row_details[row + 1].miner_count_below + 1
+            row_details.last_miner_below = position
+            row_details.miner_count_below = row_details.miner_count_below + 1
         end
         state.total_miners = state.total_miners + 1
         if state.use_chest then
-            state.row_details[row + 1].miner_positions[state.count % state.miners_per_row] = true
+            row_details.miner_positions[state.count % state.miners_per_row] = true
+        end
+        if not row_details.first_miner_position or x < row_details.first_miner_position.x then
+            row_details.first_miner_position = position
         end
     end
     state.count = state.count + 1
@@ -407,28 +411,31 @@ function place_belt(state)
     local x = (state.count % (state.row_length + 1)) + 0.5
     local y = row * state.row_height + state.conf.miner_width + 0.5
     
-    if state.count % (state.row_length + 1) == 0 then
-        if state.place_poles_in_rows then
-            place_entity(state, {position = {x = x, y = y}, name = state.conf.electric_pole})
-        end
+    -- Place a pole at the start of the row if necessary
+    if state.count % (state.row_length + 1) == 0 and state.place_poles_in_rows then
+        place_entity(state, {position = {x = x, y = y}, name = state.conf.electric_pole})
+        state.count = state.count + 1
+        return 
+    end
+
+    local row_details = state.row_details[row + 1]
+    
+    -- Skip if this row is empty or we're before the first miner.
+    if row_details.miner_count == 0 or x < row_details.first_miner_position.x - state.conf.miner_width / 2 then
         state.count = state.count + 1
         return 
     end
     
-    if state.row_details[row + 1].miner_count == 0 then
-        state.count = state.count + 1
-        return 
-    end
-    
+    -- Place an extra belt at the end for fluid mining to leave space for pipes.
     if state.count % (state.row_length + 1) == state.row_length and not state.fluid then
         state.count = state.count + 1
         return 
     end
     
     local pos = {x = x, y = y}
-    local belt = choose_belt(state, state.row_details[row + 1])
+    local belt = choose_belt(state, row_details)
     place_entity(state, {position = pos, name = belt, direction = defines.direction.east})
-    state.row_details[row + 1].end_pos = pos
+    row_details.end_pos = pos
     state.count = state.count + 1
 end
 
