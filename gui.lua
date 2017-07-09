@@ -1,4 +1,6 @@
-require "mod-gui"
+require("mod-gui")
+require("util")
+require("on_init")
 
 function create_button(player)
     local button_flow = mod_gui.get_button_flow(player)
@@ -312,5 +314,4 @@ script.on_event(
     end
 )
 
-ON_INIT = ON_INIT or {}
 table.insert(ON_INIT, init_gui)

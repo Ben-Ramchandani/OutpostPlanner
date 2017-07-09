@@ -1,3 +1,6 @@
+require("util")
+require("on_init")
+
 OB_CONF = {
     -- Can be changed with the in game GUI
     miner_name = "electric-mining-drill",
@@ -111,5 +114,4 @@ end
 
 remote.add_interface("OutpostBuilder", {reset = reset_all, config = set_config_global, validate = init_config})
 
-ON_INIT = ON_INIT or {}
 table.insert(ON_INIT, init_config)
