@@ -216,9 +216,11 @@ end
 ON_INIT = ON_INIT or {}
 table.insert(ON_INIT, clear_running_state)
 
-stage = {}
+stage_function_table = {}
+OB_stage = {}
+stage_function_table.OB_stage = OB_stage
 
-function stage.find_ore(state)
+function OB_stage.find_ore(state)
     local ore_names = find_ore(state.event_entities)
     if ore_names == nil then
         state.player.print({"outpost-builder.no-ore"})
@@ -229,7 +231,7 @@ function stage.find_ore(state)
     end
 end
 
-function stage.check_fluid(state)
+function OB_stage.check_fluid(state)
     state.fluid = false
     for i, name in ipairs(state.ore_names) do
         if game.entity_prototypes[name].mineable_properties.required_fluid and conf.miner_width == 3 then
@@ -240,7 +242,7 @@ function stage.check_fluid(state)
     return true
 end
 
-function stage.bounding_box(state)
+function OB_stage.bounding_box(state)
     local bounding_box = find_bounding_box_names(state.event_entities, state.ore_names)
     -- No longer needed, drop for garbage collection.
     state.event_entities = nil
@@ -264,7 +266,7 @@ function stage.bounding_box(state)
     return true
 end
 
-function stage.place_blueprint_entity(state)
+function OB_stage.place_blueprint_entity(state)
     local row = math.floor(state.count / state.entities_per_row)
     if row >= state.num_rows then
         return true
@@ -302,7 +304,7 @@ function stage.place_blueprint_entity(state)
 end
 
 
-function stage.blueprint_end_pos(state)
+function OB_stage.blueprint_end_pos(state)
     for i, row_details in ipairs(state.row_details) do
         local x = state.row_length - 0.5
         local y = (i - 1) * state.conf.blueprint_height + state.leaving_belt.position.y
@@ -312,7 +314,7 @@ function stage.blueprint_end_pos(state)
 end
 
 
-function stage.place_underground_belt(state)
+function OB_stage.place_underground_belt(state)
     if state.count >= state.num_rows then
         return true
     end
@@ -322,13 +324,13 @@ function stage.place_underground_belt(state)
     return false
 end
 
-function stage.pole_builder_invoke(state)
+function OB_stage.pole_builder_invoke(state)
     area = {left_top = {x = state.left, y = state.top}, right_bottom = {x = state.left + state.row_length, y = state.top + state.total_height}}
     remote.call("PoleBuilder", "invoke", {player = state.player, entities = state.placed_entities, pole = state.conf.electric_pole, area = area, padding = 1})
     return true
 end
 
-function stage.set_up_placement_stages(state)
+function OB_stage.set_up_placement_stages(state)
     if state.conf.blueprint_entities then
 
         state.blueprint_per_row = math.ceil(state.width / state.conf.blueprint_width)
@@ -338,23 +340,23 @@ function stage.set_up_placement_stages(state)
         state.entities_per_blueprint = #state.conf.blueprint_entities
         state.entities_per_row = state.entities_per_blueprint * state.blueprint_per_row
 
-        table.append_modify(state.stages, {stage.place_blueprint_entity})
+        table.append_modify(state.stages, {"place_blueprint_entity"})
 
         if state.conf.leaving_belt then
-            table.append_modify(state.stages, {stage.blueprint_end_pos, stage.remove_empty_rows})
+            table.append_modify(state.stages, {"blueprint_end_pos", "remove_empty_rows"})
             if game.entity_prototypes[state.conf.leaving_belt.name].type == "transport-belt" then
                 state.leaving_belt = state.conf.leaving_belt
             else
                 state.leaving_underground_belt_name = state.conf.leaving_belt.name
                 state.leaving_belt = {name = underground_to_belt(state.conf.leaving_belt.name), position = state.conf.leaving_belt.position}
-                table.append_modify(state.stages, {stage.place_underground_belt})
+                table.append_modify(state.stages, {"place_underground_belt"})
             end
             state.leaving_belt_name = state.leaving_belt.name
-            table.append_modify(state.stages, {stage.merge_lanes, stage.collate_outputs})
+            table.append_modify(state.stages, {"merge_lanes", "collate_outputs"})
         end
 
         if state.conf.use_pole_builder then
-            table.append_modify(state.stages, {stage.pole_builder_invoke})
+            table.append_modify(state.stages, {"pole_builder_invoke"})
             state.placed_entities = {}
         end
         
@@ -371,7 +373,7 @@ function stage.set_up_placement_stages(state)
 
         if state.conf.use_chest then
             state.use_chest = state.conf.use_chest
-            table.append_modify(state.stages, {stage.place_miner, stage.place_pole, stage.place_chest})
+            table.append_modify(state.stages, {"place_miner", "place_pole", "place_chest"})
             for i = 1, state.num_rows do
                 table.insert(state.row_details, {miner_count = 0, miner_count_below = 0, miner_count_above = 0, miner_positions = {}})
             end
@@ -397,7 +399,7 @@ function stage.set_up_placement_stages(state)
                 return (1 + state.force.mining_drill_productivity_bonus) * (miner_prototype.mining_power - ore_prototype.mineable_properties.hardness) * miner_prototype.mining_speed / ore_prototype.mineable_properties.mining_time
             end
             state.miner_res_per_sec = miner_res_per_sec_function(table.max(state.ore_names, miner_res_per_sec_function))
-            table.append_modify(state.stages, {stage.place_miner, stage.place_pole, stage.place_belt, stage.remove_empty_rows, stage.merge_lanes, stage.collate_outputs})
+            table.append_modify(state.stages, {"place_miner", "place_pole", "place_belt", "remove_empty_rows", "merge_lanes", "collate_outputs"})
             for i = 1, state.num_rows do
                 table.insert(state.row_details, {miner_count = 0, miner_count_below = 0, miner_count_above = 0, end_pos = nil})
             end
@@ -453,7 +455,7 @@ function place_miner(state, data)--position, direction, mining_radius, miner_rad
     return place_entity(state, data)
 end
 
-function stage.place_miner(state)
+function OB_stage.place_miner(state)
     local x = (state.count % state.miners_per_row) * state.conf.miner_width + state.conf.miner_width / 2
     local half_row = math.floor(state.count / state.miners_per_row)
     local row = math.floor(half_row / 2)
@@ -488,7 +490,7 @@ function stage.place_miner(state)
     return false
 end
 
-function stage.place_pole(state)
+function OB_stage.place_pole(state)
     local row = math.floor(state.count / state.electric_poles_per_row)
     if (row > state.num_half_rows / 2) then
         return true
@@ -520,7 +522,7 @@ function underground_pipe_bridge(state, underground_pipe, max_distance, x1, x2, 
     end
 end
 
-function stage.place_pipes(state)
+function OB_stage.place_pipes(state)
     if state.count >= state.num_half_rows then
         return true
     end
@@ -556,7 +558,7 @@ function stage.place_pipes(state)
     return false
 end
 
-function stage.place_chest(state)
+function OB_stage.place_chest(state)
     local row = math.floor(state.count / state.miners_per_row)
     if row >= state.num_rows then
         return true
@@ -571,7 +573,7 @@ function stage.place_chest(state)
     return false
 end
 
-function stage.place_belt(state)
+function OB_stage.place_belt(state)
     local row = math.floor(state.count / (state.row_length + 1))
     if row >= state.num_rows then
         return true
@@ -602,7 +604,7 @@ function stage.place_belt(state)
     return false
 end
 
-function stage.remove_empty_rows(state)
+function OB_stage.remove_empty_rows(state)
     local i = 1
     while i <= #state.row_details do
         if state.row_details[i].miner_count == 0 then
@@ -618,7 +620,7 @@ function stage.remove_empty_rows(state)
     return true
 end
 
-function stage.merge_lanes(state)
+function OB_stage.merge_lanes(state)
     if state.num_rows <= state.conf.output_belt_count then
         return true
     end
@@ -679,7 +681,7 @@ function stage.merge_lanes(state)
     table.remove(state.row_details, min_index - 1)
 end
 
-function stage.collate_outputs(state) -- Move the outputs to be adjacent.
+function OB_stage.collate_outputs(state) -- Move the outputs to be adjacent.
     local row = table.remove(state.row_details)
     if row == nil then
         return true
@@ -724,7 +726,20 @@ function stage.collate_outputs(state) -- Move the outputs to be adjacent.
 end
 
 function placement_tick(state)
-    local res = state.stages[state.stage + 1](state)
+    local namespace = state.stage_namespace
+    local stage_name = state.stages[state.stage + 1]
+    local stage_function = nil
+    if type(stage_name) == "string" then
+        stage_function = stage_function_table[state.stage_namespace][stage_name]
+    elseif type(stage_name) == "table" then
+        stage_function = stage_function_table[stage_name[1]][stage_name[2]]
+    end
+    if not stage_function then
+        game.print("ERR bad stage name " .. serpent.block(stage_name))
+        state.stage = 1000
+        return
+    end
+    local res = stage_function(state)
     if res == true then
         state.stage = state.stage + 1
         state.count = 0
@@ -777,7 +792,7 @@ function on_selected_area(event, deconstruct_friendly)
     local surface = player.surface
     local force = player.force
     local conf = get_config(player)
-    local stages = {stage.find_ore, stage.check_fluid, stage.bounding_box, stage.set_up_placement_stages}
+    local stages = {"find_ore", "check_fluid", "bounding_box", "set_up_placement_stages"}
     
     if not conf.used_before then
         player.print({"outpost-builder.on-first-use", {"outpost-builder.initials"}})
@@ -796,6 +811,7 @@ function on_selected_area(event, deconstruct_friendly)
         output_rows = {},
         conf = conf,
         stages = stages,
+        stage_namespace = "OB_stage",
         deconstruct_friendly = deconstruct_friendly,
         total_miners = 0
     }
