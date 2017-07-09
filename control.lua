@@ -296,14 +296,13 @@ function place_miner(state)
         if direction == defines.direction.south then
             row_details.last_miner_above = position
             row_details.miner_count_above = row_details.miner_count_above + 1
+            row_details.miner_positions_above[(state.count % state.miners_per_row) + 1] = true
         else
             row_details.last_miner_below = position
             row_details.miner_count_below = row_details.miner_count_below + 1
+            row_details.miner_positions_below[(state.count % state.miners_per_row) + 1] = true
         end
         state.total_miners = state.total_miners + 1
-        if state.use_chest then
-            row_details.miner_positions[state.count % state.miners_per_row] = true
-        end
         if not row_details.first_miner_position or x < row_details.first_miner_position.x then
             row_details.first_miner_position = position
         end
@@ -346,6 +345,13 @@ function underground_pipe_bridge(state, underground_pipe, max_distance, x1, x2, 
     end
 end
 
+function underground_pipes_and_bridge(state, x1, x2, y)
+    local underground_pipe = pipe_to_underground(state.conf.pipe_name)
+    place_entity(state, {position = {x = x1, y = y}, name = underground_pipe, direction = defines.direction.west})
+    place_entity(state, {position = {x = x2, y = y}, name = underground_pipe, direction = defines.direction.east})
+    underground_pipe_bridge(state, underground_pipe, game.entity_prototypes[underground_pipe].max_underground_distance, x1, x2, y)
+end
+
 function place_pipes(state)
     if state.count >= state.num_half_rows then
         state.stage = state.stage + 1
@@ -357,7 +363,6 @@ function place_pipes(state)
     local row = math.floor(state.count / 2)
     local x = state.row_length + 0.5
     local y = row * state.row_height + state.conf.miner_width / 2
-    local direciton
     local last_miner_x = nil
     if is_above_row then
         if state.row_details[row + 1].last_miner_above then
@@ -376,13 +381,64 @@ function place_pipes(state)
     place_entity(state, {position = {x = x, y = y + 1}, name = underground_pipe, direction = defines.direction.north})
     
     if last_miner_x and last_miner_x ~= x then
-        place_entity(state, {position = {x = last_miner_x, y = y}, name = underground_pipe, direction = defines.direction.west})
-        place_entity(state, {position = {x = x - 1, y = y}, name = underground_pipe, direction = defines.direction.east})
-        underground_pipe_bridge(state, underground_pipe, game.entity_prototypes[underground_pipe].max_underground_distance, last_miner_x, x - 1, y)
+        underground_pipes_and_bridge(state, last_miner_x, x - 1, y)
+        -- place_entity(state, {position = {x = last_miner_x, y = y}, name = underground_pipe, direction = defines.direction.west})
+        -- place_entity(state, {position = {x = x - 1, y = y}, name = underground_pipe, direction = defines.direction.east})
+        -- underground_pipe_bridge(state, underground_pipe, game.entity_prototypes[underground_pipe].max_underground_distance, last_miner_x, x - 1, y)
     end
     
     state.count = state.count + 1
 end
+
+
+function place_joining_pipes(state)
+    if state.count >= state.num_half_rows then
+        state.stage = state.stage + 1
+        state.count = 0
+        return 
+    end
+
+    local is_above_row = state.count % 2 == 0
+    local row = math.floor(state.count / 2)
+    local row_details = state.row_details[row + 1]
+    local y = row * state.row_height + state.conf.miner_width / 2
+    local miner_positions = row_details.miner_positions_above
+    if state.count % 2 == 1 then
+        y = y + state.conf.miner_width + 1
+        miner_positions = row_details.miner_positions_below
+    end
+
+    --game.print("Row " .. row .. ": " .. serpent.block(row_details.miner_positions))
+
+    local i = 0
+    while not miner_positions[i + 1] and i < state.miners_per_row do
+        i = i + 1
+    end
+    i = i + 1
+
+    local is_bridging = false
+    local bridge_start_x = nil
+    local underground_pipe = pipe_to_underground(state.conf.pipe_name)
+
+    while i < state.miners_per_row do
+        if is_bridging then
+            if miner_positions[i + 1] then
+                x = i * state.conf.miner_width - 0.5
+                underground_pipes_and_bridge(state, bridge_start_x, x, y)
+                is_bridging = false
+            end
+        else
+            if not miner_positions[i + 1] then
+                is_bridging = true
+                bridge_start_x = i * state.conf.miner_width + 0.5
+            end
+        end
+        i = i + 1
+    end
+    state.count = state.count + 1
+    return
+end
+
 
 function place_chest(state)
     local row = math.floor(state.count / state.miners_per_row)
@@ -391,7 +447,7 @@ function place_chest(state)
         return
     end
     local miner_num = state.count % state.miners_per_row
-    if state.row_details[row + 1].miner_positions[miner_num] then
+    if state.row_details[row + 1].miner_positions_above[miner_num + 1] or state.row_details[row + 1].miner_positions_below[miner_num + 1] then
         local x = miner_num * state.conf.miner_width + state.conf.miner_width / 2
         local y = row * state.row_height + state.conf.miner_width + 0.5
         place_entity(state, {position = {x = x, y = y}, name = state.use_chest})
@@ -643,6 +699,7 @@ function on_selected_area(event, deconstruct_friendly)
         if game.entity_prototypes[name].mineable_properties.required_fluid and conf.miner_width == 3 then
             fluid = true
             table.insert(stages, 4, place_pipes)
+            table.insert(stages, 5, place_joining_pipes)
             break
         end
     end
@@ -732,7 +789,7 @@ function on_selected_area(event, deconstruct_friendly)
     }
 
     for i = 1, num_rows do
-        state.row_details[i] = {miner_count = 0, miner_count_below = 0, miner_count_above = 0, end_pos = nil, miner_positions = {}}
+        state.row_details[i] = {miner_count = 0, miner_count_below = 0, miner_count_above = 0, end_pos = nil, miner_positions_above = {}, miner_positions_below = {}}
     end
     
     if conf.run_over_multiple_ticks then

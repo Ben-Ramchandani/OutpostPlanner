@@ -1,4 +1,4 @@
-## Outpost Planner v0.1.9
+## Outpost Planner v0.2.0
 
 Automatically build mining outposts. The tool will place the miners, power poles and belts before merging together the outgoing lanes.
 To use select an ore patch with the tool.
@@ -39,3 +39,9 @@ Alternatively the config file (`config.lua`) can be edited to change how the mod
 
     /c remote.call("OutpostBuilder", "config", {electric_pole = "medium-electric-pole", run_over_multiple_ticks = false})
 
+
+### Changelog
+
+0.2.0
+
+* Pipes are now placed in gaps in rows of miners when fluid mining (Uranium).
