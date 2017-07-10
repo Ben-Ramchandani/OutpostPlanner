@@ -8,7 +8,10 @@ PlannerCore.stage_function_table = {}
 
 -- Load stage functions 
 require("OB_stages")
+require("PB_stages")
 
+
+-- On tick functions
 function PlannerCore.placement_tick(state)
     local namespace = state.stage_namespace
     local stage_name = state.stages[state.stage + 1]
@@ -103,6 +106,10 @@ function PlannerCore.on_tick(event)
         local i = 1
         while i <= #global.running_states do
             local state = global.running_states[i]
+            -- if event.tick % 60 == 0 then
+            --     game.print("Handler running")
+            --     game.print("In stage " .. state.stage)
+            -- end
             if state.stage < #state.stages then
                 PlannerCore.placement_tick(state)
                 i = i + 1
@@ -127,4 +134,12 @@ end
 
 table.insert(ON_INIT, PlannerCore.clear_running_state)
 
+-- Remote interfaces
+
 remote.add_interface("PlannerCore", {register = PlannerCore.register, run_immediately = PlannerCore.run_immediately})
+
+PlannerCore.remote_invoke = {}
+
+require("PB_invoke")
+
+remote.add_interface("PlannerCoreInvoke", PlannerCore.remote_invoke)

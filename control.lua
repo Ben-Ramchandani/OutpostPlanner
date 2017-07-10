@@ -1,6 +1,9 @@
 require("config")
 require("gui")
-require("planner-core")
+
+if not remote.interfaces["PlannerCore"] then
+    require("PlannerCore/planner-core")
+end
 
 -- Note this mod uses its original name (OutpostBuilder) internally.
 

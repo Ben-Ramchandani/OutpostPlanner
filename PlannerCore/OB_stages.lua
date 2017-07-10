@@ -70,7 +70,7 @@ function OB_helper.find_bounding_box_names(entities, names)
     return {left_top = {x = math.floor(left), y = math.floor(top)}, right_bottom = {x = math.ceil(right), y = math.ceil(bottom)}}
 end
 
-function place_blueprint(surface, data)
+function OB_helper.place_blueprint(surface, data)
     data.inner_name = data.name
     data.name = "entity-ghost"
     data.expires = false
@@ -83,7 +83,7 @@ end
 
 
 
-function place_entity(state, data)
+function OB_helper.place_entity(state, data)
     data.force = state.force
     data.position = OB_helper.abs_position(state, data.position)
     data.direction = OB_helper.abs_direction(state, data.direction)
@@ -125,7 +125,7 @@ function place_entity(state, data)
                     state.player.remove_item({name = data.name, count = 1})
                 else
                     if state.conf.place_blueprint_on_out_of_inventory then
-                        return place_blueprint(state.surface, data)
+                        return OB_helper.place_blueprint(state.surface, data)
                     else
                         return nil
                     end
@@ -133,10 +133,10 @@ function place_entity(state, data)
             end
             return state.surface.create_entity(data)
         elseif state.conf.place_blueprint_on_collision then
-            return place_blueprint(state.surface, data)
+            return OB_helper.place_blueprint(state.surface, data)
         end
     else
-        return place_blueprint(state.surface, data)
+        return OB_helper.place_blueprint(state.surface, data)
     end
     return true
 end
@@ -194,7 +194,7 @@ function OB_helper.place_miner(state, data)
             end
         end
     end
-    
+
     if state.conf.check_for_ore then
         local radius = (prototype.collision_box.right_bottom.x - prototype.collision_box.left_top.x)/2 - 0.1
         local mining_box = {left_top = {x = x - radius, y = y - radius}, right_bottom = {x = x + radius, y = y + radius}}
@@ -210,8 +210,8 @@ function OB_helper.place_miner(state, data)
             return false
         end
     end
-    
-    return place_entity(state, data)
+
+    return OB_helper.place_entity(state, data)
 end
 
 
@@ -219,8 +219,8 @@ end
 function OB_helper.underground_pipe_bridge(state, underground_pipe, max_distance, x1, x2, y)
     if x2 - x1 > max_distance then
         local x = x1 + math.floor((x2 - x1) / 2)
-        place_entity(state, {position = {x = x, y = y}, name = underground_pipe, direction = defines.direction.east})
-        place_entity(state, {position = {x = x + 1, y = y}, name = underground_pipe, direction = defines.direction.west})
+        OB_helper.place_entity(state, {position = {x = x, y = y}, name = underground_pipe, direction = defines.direction.east})
+        OB_helper.place_entity(state, {position = {x = x + 1, y = y}, name = underground_pipe, direction = defines.direction.west})
         OB_helper.underground_pipe_bridge(state, underground_pipe, max_distance, x1, x, y)
         OB_helper.underground_pipe_bridge(state, underground_pipe, max_distance, x + 1, x2, y)
     end
@@ -429,7 +429,7 @@ function OB_stage.place_blueprint_entity(state)
             end
         end
     else
-        local result = place_entity(state, entity)
+        local result = OB_helper.place_entity(state, entity)
         if state.conf.use_pole_builder and result then
             table.insert(state.placed_entities, result)
         end
@@ -455,13 +455,13 @@ function OB_stage.place_underground_belt(state)
     end
     local position = state.row_details[state.count + 1].end_pos
     position.x = position.x + 1
-    place_entity(state, {name = state.leaving_underground_belt_name, position = position, direction = defines.direction.east, type = "output"})
+    OB_helper.place_entity(state, {name = state.leaving_underground_belt_name, position = position, direction = defines.direction.east, type = "output"})
     return false
 end
 
 function OB_stage.pole_builder_invoke(state)
     area = {left_top = {x = state.left, y = state.top}, right_bottom = {x = state.left + state.row_length, y = state.top + state.total_height}}
-    remote.call("PoleBuilder", "invoke", {player = state.player, entities = state.placed_entities, pole = state.conf.electric_pole, area = area, padding = 1})
+    remote.call("PlannerCoreInvoke", "PoleBuilder", {player = state.player, entities = state.placed_entities, pole = state.conf.electric_pole, area = area, padding = 1})
     return true
 end
 
@@ -518,7 +518,7 @@ function OB_stage.place_pole(state)
         return false
     end
     
-    place_entity(state, {position = {x, y}, name = state.conf.electric_pole})
+    OB_helper.place_entity(state, {position = {x, y}, name = state.conf.electric_pole})
     return false
 end
 
@@ -545,13 +545,13 @@ function OB_stage.place_pipes(state)
     end
     
     local underground_pipe = pipe_to_underground(state.conf.pipe_name)
-    place_entity(state, {position = {x = x, y = y - 1}, name = underground_pipe, direction = defines.direction.south})
-    place_entity(state, {position = {x = x, y = y}, name = state.conf.pipe_name, direction = defines.direction.south})
-    place_entity(state, {position = {x = x, y = y + 1}, name = underground_pipe, direction = defines.direction.north})
+    OB_helper.place_entity(state, {position = {x = x, y = y - 1}, name = underground_pipe, direction = defines.direction.south})
+    OB_helper.place_entity(state, {position = {x = x, y = y}, name = state.conf.pipe_name, direction = defines.direction.south})
+    OB_helper.place_entity(state, {position = {x = x, y = y + 1}, name = underground_pipe, direction = defines.direction.north})
     
     if last_miner_x and last_miner_x ~= x then
-        place_entity(state, {position = {x = last_miner_x, y = y}, name = underground_pipe, direction = defines.direction.west})
-        place_entity(state, {position = {x = x - 1, y = y}, name = underground_pipe, direction = defines.direction.east})
+        OB_helper.place_entity(state, {position = {x = last_miner_x, y = y}, name = underground_pipe, direction = defines.direction.west})
+        OB_helper.place_entity(state, {position = {x = x - 1, y = y}, name = underground_pipe, direction = defines.direction.east})
         OB_helper.underground_pipe_bridge(state, underground_pipe, game.entity_prototypes[underground_pipe].max_underground_distance, last_miner_x, x - 1, y)
     end
     
@@ -567,7 +567,7 @@ function OB_stage.place_chest(state)
     if state.row_details[row + 1].miner_positions[miner_num] then
         local x = miner_num * state.conf.miner_width + state.conf.miner_width / 2
         local y = row * state.row_height + state.conf.miner_width + 0.5
-        place_entity(state, {position = {x = x, y = y}, name = state.use_chest})
+        OB_helper.place_entity(state, {position = {x = x, y = y}, name = state.use_chest})
     end
 
     return false
@@ -584,7 +584,7 @@ function OB_stage.place_belt(state)
     
     if state.count % (state.row_length + 1) == 0 then
         if state.place_poles_in_rows then
-            place_entity(state, {position = {x = x, y = y}, name = state.conf.electric_pole})
+            OB_helper.place_entity(state, {position = {x = x, y = y}, name = state.conf.electric_pole})
         end
         return false
     end
@@ -599,7 +599,7 @@ function OB_stage.place_belt(state)
     
     local pos = {x = x, y = y}
     local belt = OB_helper.choose_belt(state, state.row_details[row + 1])
-    place_entity(state, {position = pos, name = belt, direction = defines.direction.east})
+    OB_helper.place_entity(state, {position = pos, name = belt, direction = defines.direction.east})
     state.row_details[row + 1].end_pos = pos
     return false
 end
@@ -653,20 +653,20 @@ function OB_stage.merge_lanes(state)
     
     while pos2.x - 1 > pos1.x do
         pos1.x = pos1.x + 1
-        place_entity(state, {position = {x = pos1.x, y = pos1.y}, name = belt1, direction = defines.direction.east})
+        OB_helper.place_entity(state, {position = {x = pos1.x, y = pos1.y}, name = belt1, direction = defines.direction.east})
     end
     while pos1.x > pos2.x - 1 do
         pos2.x = pos2.x + 1
-        place_entity(state, {position = {x = pos2.x, y = pos2.y}, name = belt2, direction = defines.direction.east})
+        OB_helper.place_entity(state, {position = {x = pos2.x, y = pos2.y}, name = belt2, direction = defines.direction.east})
     end
     
     pos1.x = pos1.x + 1
     while pos1.y + 1 < pos2.y do
-        place_entity(state, {position = {x = pos1.x, y = pos1.y}, name = belt1, direction = defines.direction.south})
+        OB_helper.place_entity(state, {position = {x = pos1.x, y = pos1.y}, name = belt1, direction = defines.direction.south})
         pos1.y = pos1.y + 1
     end
     
-    place_entity(state, {position = {x = pos1.x, y = pos1.y}, name = belt1, direction = defines.direction.east})
+    OB_helper.place_entity(state, {position = {x = pos1.x, y = pos1.y}, name = belt1, direction = defines.direction.east})
     pos1.x = pos1.x + 1
     local new_miner_count_below, new_miner_count_above
     if state.row_details[min_index].miner_count_below then
@@ -677,7 +677,7 @@ function OB_stage.merge_lanes(state)
     local belt = OB_helper.choose_belt(state, state.row_details[min_index])
     state.row_details[min_index].belt = belt
     state.num_rows = state.num_rows - 1
-    place_entity(state, {position = {x = pos1.x, y = pos1.y + 0.5}, name = belt_to_splitter(belt), direction = defines.direction.east})
+    OB_helper.place_entity(state, {position = {x = pos1.x, y = pos1.y + 0.5}, name = belt_to_splitter(belt), direction = defines.direction.east})
     table.remove(state.row_details, min_index - 1)
 end
 
@@ -693,7 +693,7 @@ function OB_stage.collate_outputs(state) -- Move the outputs to be adjacent.
             row.end_pos.y = row.end_pos.y - 0.5
         end
         row.end_pos.x = row.end_pos.x + 1
-        place_entity(state, {position = row.end_pos, name = belt, direction = defines.direction.east})
+        OB_helper.place_entity(state, {position = row.end_pos, name = belt, direction = defines.direction.east})
         table.insert(state.output_rows, row)
     else
         if row.end_pos.y % 1 == 0 then
@@ -707,20 +707,20 @@ function OB_stage.collate_outputs(state) -- Move the outputs to be adjacent.
             for i, row in ipairs(state.output_rows) do
                 local pos = row.end_pos
                 pos.x = pos.x + 1
-                place_entity(state, {position = pos, name = row.belt, direction = defines.direction.east})
+                OB_helper.place_entity(state, {position = pos, name = row.belt, direction = defines.direction.east})
             end
         end
         
         while row.end_pos.x < state.output_rows[1].end_pos.x do
-            place_entity(state, {position = row.end_pos, name = belt, direction = defines.direction.east})
+            OB_helper.place_entity(state, {position = row.end_pos, name = belt, direction = defines.direction.east})
             row.end_pos.x = row.end_pos.x + 1
         end
         
         while row.end_pos.y + 1 < state.output_rows[#state.output_rows].end_pos.y do
-            place_entity(state, {position = row.end_pos, name = belt, direction = defines.direction.south})
+            OB_helper.place_entity(state, {position = row.end_pos, name = belt, direction = defines.direction.south})
             row.end_pos.y = row.end_pos.y + 1
         end
-        place_entity(state, {position = row.end_pos, name = belt, direction = defines.direction.east})
+        OB_helper.place_entity(state, {position = row.end_pos, name = belt, direction = defines.direction.east})
         table.insert(state.output_rows, row)
     end
 end
