@@ -25,5 +25,12 @@ data:extend(
         ingredients = {},
         result = "outpost-builder"
     },
+    {
+      type = "sprite",
+      name = "miner-blueprint",
+      filename = "__OutpostPlanner__/graphics/miner-blueprint.png",
+      width = 32,
+      height = 32
+    }
   }
 )
