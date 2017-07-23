@@ -7,18 +7,18 @@ end
 
 -- Note this mod uses its original name (OutpostBuilder) internally.
 
-function on_selected_area(event, deconstruct_friendly)
+local function on_selected_area(event, deconstruct_friendly)
     local player = game.players[event.player_index]
     local surface = player.surface
     local force = player.force
     local conf = get_config(player)
     local stages = {"find_ore", "check_fluid", "bounding_box", "set_up_placement_stages"}
-    
+
     if not conf.used_before then
         player.print({"outpost-builder.on-first-use", {"outpost-builder.initials"}})
         set_config(player, {used_before = true})
     end
-    
+
     local state = {
         stage = 0,
         count = 0,
@@ -34,7 +34,7 @@ function on_selected_area(event, deconstruct_friendly)
         deconstruct_friendly = deconstruct_friendly,
         total_miners = 0
     }
-    
+
     if conf.run_over_multiple_ticks then
         remote.call("PlannerCore", "register", state)
     else

@@ -1,10 +1,11 @@
 require("util")
 require("on_init")
+require("example_blueprints")
 
 OB_CONF = {
     -- Can be changed with the in game GUI
     miner_name = "electric-mining-drill",
-    electric_pole = "small-electric-pole",
+    pole_name = "small-electric-pole",
     transport_belts = {"transport-belt"},
     pipe_name = "pipe",
     direction = defines.direction.east,
@@ -20,19 +21,24 @@ OB_CONF = {
     run_over_multiple_ticks = true, -- Place instantly or one at a time?
     use_pole_builder = true, --TODO remove
     advanced_window_open = false,
-    dummy_pipe = "pipe",
+    dummy_pipe = "pipe-to-ground",
     dummy_spacing_entitiy = "wooden-chest",
-    pole_options_selected = "simple"
+    dummy_pole = "burner-inserter",
+    pole_options_selected = "simple",
+    blueprint_pipe_positions = nil,
+    override_entity_settings = false,
+    mirror_poles_at_bottom = true,
+    blueprint_data = example_blueprints.standard,
+    blueprint_raw = example_blueprints.standard_raw
 }
 
 function get_config(player)
     local conf = table.combine(table.clone(OB_CONF), global.OB_CONF_overrides[player.index])
     conf.transport_belts = table.clone(conf.transport_belts)
-    local pole_prototype = game.entity_prototypes[conf.electric_pole]
+    local pole_prototype = game.entity_prototypes[conf.pole_name]
     conf.pole_width = math.ceil(math.max(pole_prototype.collision_box.right_bottom.x - pole_prototype.collision_box.left_top.y, pole_prototype.collision_box.right_bottom.x - pole_prototype.collision_box.left_top.y))
     local miner_prototype = game.entity_prototypes[conf.miner_name]
     conf.miner_width = math.ceil(math.max(miner_prototype.collision_box.right_bottom.x - miner_prototype.collision_box.left_top.x, miner_prototype.collision_box.right_bottom.y - miner_prototype.collision_box.left_top.y))
-    --conf.miner_area = miner_prototype.mining_drill_radius * 2
     return conf
 end
 
@@ -42,9 +48,14 @@ function set_config(player, new_conf) -- Override the configuration file on a pe
     end
 end
 
+function reset_config(player)
+    global.OB_CONF_overrides[player.index] = {}
+end
+
 function reset_all()
     global.OB_CONF_overrides = {}
     global.AM_states = {}
+    init_gui()
 end
 
 function set_config_global(new_conf)
@@ -55,14 +66,14 @@ function set_config_global(new_conf)
     end
 end
 
-function validate_config(partialConf, player)
+local function validate_config(partialConf, player)
     if partialConf.miner_name then
         if not game.entity_prototypes[partialConf.miner_name] or (not game.entity_prototypes[partialConf.miner_name].type == "mining-drill") then
             return false
         end
     end
-    if partialConf.electric_pole then
-        if not game.entity_prototypes[partialConf.electric_pole] or (not game.entity_prototypes[partialConf.electric_pole].type == "electric-pole") then
+    if partialConf.pole_name then
+        if not game.entity_prototypes[partialConf.pole_name] or (not game.entity_prototypes[partialConf.pole_name].type == "electric-pole") then
             return false
         end
     end

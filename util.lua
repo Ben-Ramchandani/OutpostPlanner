@@ -19,6 +19,16 @@ function table.clone(org)
     return copy
 end
 
+function table.array_concat(arrays)
+    local new_array = {}
+    for k, arr in ipairs(arrays) do
+        for k2, elem in ipairs(arr) do
+            table.insert(new_array, elem)
+        end
+    end
+    return new_array
+end
+
 function table.deep_clone(org)
     local copy = {}
     for k, v in pairs(org) do
@@ -29,6 +39,31 @@ function table.deep_clone(org)
         end
     end
     return copy
+end
+
+function table.deep_compare(t1, t2)
+    local ty1 = type(t1)
+    local ty2 = type(t2)
+    if ty1 ~= ty2 then
+        return false
+    end
+    -- non-table types can be directly compared
+    if ty1 ~= 'table' then
+        return t1 == t2
+    end
+    for k1, v1 in pairs(t1) do
+        local v2 = t2[k1]
+        if v2 == nil or not deepcompare(v1, v2) then
+            return false
+        end
+    end
+    for k2, v2 in pairs(t2) do
+        local v1 = t1[k2]
+        if v1 == nil or not deepcompare(v1, v2) then
+            return false
+        end
+    end
+    return true
 end
 
 function dict_to_array(dict)
@@ -60,6 +95,13 @@ function table.combine(a, b)
         end
     end
     return a
+end
+
+function table.array_combine(t1, t2)
+    for i, v in ipairs(t2) do
+        table.insert(t1, v)
+    end
+    return t1
 end
 
 function id(x)
@@ -100,6 +142,15 @@ function table.apply(t, func)
     end
 end
 
+function table.all(t, func)
+    for k, v in pairs(t) do
+        if not func(v) then
+            return false
+        end
+    end
+    return true
+end
+
 function table.append_modify(t1, t2)
     for i, v in ipairs(t2) do
         table.insert(t1, v)
@@ -129,12 +180,44 @@ function table.remove_all(t, func)
     end
 end
 
+function table.filter_remove(t, func)
+    local new_table = {}
+    local i = 1
+    while i <= #t do
+        if func(t[i]) then
+            table.insert(new_table, t[i])
+            table.remove(t, i)
+        else
+            i = i + 1
+        end
+    end
+    return new_table
+end
+
+function table.filter(t, func)
+    local new_table = {}
+    for k, v in ipairs(t) do
+        if func(v) then
+            table.insert(new_table, v)
+        end
+    end
+    return new_table
+end
+
 function belt_to_splitter(belt)
     return string.gsub(belt, "(.*)transport%-belt", "%1splitter")
 end
 
+function splitter_to_belt(belt)
+    return string.gsub(belt, "(.*)splitter", "%1transport-belt")
+end
+
 function underground_to_belt(underground)
     return string.gsub(underground, "(.*)underground%-belt", "%1transport-belt")
+end
+
+function belt_to_underground(belt)
+    return string.gsub(belt, "(.*)transport%-belt", "%1underground-belt")
 end
 
 function pipe_to_underground(pipe)
@@ -177,56 +260,4 @@ function find_blueprint_bounding_box(entities)
     return {left_top = {x = left, y = top}, right_bottom = {x = right, y = bottom}}
 end
 
-function find_leaving_belt(entities, width)
-    for k, entity in pairs(entities) do
-        if game.entity_prototypes[entity.name].type == "transport-belt" then
-            if entity.direction == defines.direction.east and entity.position.x > width - 1 then
-                return entity
-            end
-        end
-    end
-    for k, entity in pairs(entities) do
-        if game.entity_prototypes[entity.name].type == "underground-belt" then
-            if entity.direction == defines.direction.east and entity.type == "input" then
-                return entity
-            end
-        end
-    end
-    return nil
-end
 
-function overlap_by_y(entities, height)
-    local poles = {}
-    for k, entity in pairs(entities) do
-        local prototype = game.entity_prototypes[entity.name]
-        local min_y, max_y = entity.position.y, entity.position.y
-        if prototype.collision_box then
-            local box = rotate_box(prototype.collision_box)
-            min_y = min_y + box.left_top.y
-            max_y = max_y + box.right_bottom.y
-        end
-        if min_y < 1 or max_y > height - 1 then
-            if prototype.type ~= "electric-pole" then
-                return 0
-            else
-                table.insert(poles, entity)
-            end
-        end
-    end
-    
-    while #poles > 0 do
-        local pole = table.remove(poles)
-        local symmetric_pole_index = table.find(
-            poles,
-            function(p)
-                return p.position.x == pole.position.x and ((p.position.y == 0.5 and pole.position.y == height - 0.5) or (p.position.y == height - 0.5 and pole.position.y == 0.5))
-            end
-        )
-        if symmetric_pole_index then
-            table.remove(poles, symmetric_pole_index)
-        else
-            return 0
-        end
-    end
-    return 1
-end

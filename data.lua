@@ -34,3 +34,31 @@ data:extend(
     }
   }
 )
+
+function table.deep_clone(org)
+    local copy = {}
+    for k, v in pairs(org) do
+        if type(v) == "table" then
+            copy[k] = table.deep_clone(v)
+        else
+            copy[k] = v
+        end
+    end
+    return copy
+end
+
+-- data.raw["electric-pole"]["substation-2"] = table.deep_clone(data.raw["electric-pole"]["substation"])
+-- data.raw["electric-pole"]["substation-2"].name = "substation-2"
+-- --data.raw["electric-pole"]["substation-2"].order = "[logistics][b]"
+
+
+-- data.raw["electric-pole"]["substation"].fast_replaceable_group = "substation"
+
+-- data.raw["electric-pole"]["substation-2"].fast_replaceable_group = "substation"
+
+-- data.raw["item"]["substation-2"] = table.deep_clone(data.raw["item"]["substation"])
+-- data.raw["item"]["substation-2"].name = "substation-2"
+-- data.raw["item"]["substation-2"].place_result = "substation-2"
+
+
+-- data.raw["electric-pole"]["substation-2"].collision_box = {{-1.9, -1.9}, {1.9, 1.9}}
