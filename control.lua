@@ -27,6 +27,7 @@ local function on_selected_area(event, deconstruct_friendly)
         force = force,
         surface = surface,
         row_details = {},
+        belt_row_details = {},
         output_rows = {},
         conf = conf,
         stages = stages,

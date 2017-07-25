@@ -29,7 +29,8 @@ OB_CONF = {
     override_entity_settings = false,
     mirror_poles_at_bottom = true,
     blueprint_data = example_blueprints.standard,
-    blueprint_raw = example_blueprints.standard_raw
+    blueprint_raw = example_blueprints.standard_raw,
+    simple_belt_placement = false
 }
 
 function get_config(player)

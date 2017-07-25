@@ -230,6 +230,7 @@ function create_advanced_window(conf, player)
             state = false
         }
     )
+    --TODO simple_belt_placement
     -- frame.add(
     --     {
     --         type = "checkbox",
@@ -585,7 +586,15 @@ local function find_leaving_underground_belts(entities)
             game.entity_prototypes[entity.name].type == "underground-belt" and
                 game.entity_prototypes[underground_to_belt(entity.name)]
          then
-            if entity.direction == defines.direction.east and entity.type == "input" then
+            if
+                entity.direction == defines.direction.east and entity.type == "input" and
+                    not table.find(
+                        list,
+                        function(e)
+                            return e.y == entity.y
+                        end
+                    )
+             then
                 table.insert(list, entity)
             end
         end
@@ -895,9 +904,9 @@ script.on_event(
         elseif event.element.name == "OutpostBuilderDirectionButton" then
             direction_button_click(event)
         elseif event.element.name == "OutpostBuilderOutputRowsButton" then
+            -- elseif event.element.name == "OutpostBuilderMinerButton" then
+            --     miner_button_click(event)
             count_button_click(event)
-        -- elseif event.element.name == "OutpostBuilderMinerButton" then
-        --     miner_button_click(event)
         elseif event.element.name == "OutpostBuilderPoleButton" then
             pole_button_click(event)
         elseif event.element.name == "OutpostBuilderPipeButton" then
