@@ -1,6 +1,7 @@
 require("mod-gui")
 require("util")
 require("on_init")
+require("example_blueprints")
 
 function create_button(player)
     local button_flow = mod_gui.get_button_flow(player)
@@ -64,14 +65,6 @@ function add_basic_settings_buttons(frame, conf)
             tooltip = {"outpost-builder.output-belts"}
         }
     )
-    -- frame.add(
-    --     {
-    --         type = "sprite-button",
-    --         name = "OutpostBuilderMinerButton",
-    --         sprite = ("entity/" .. conf.miner_name),
-    --         style = mod_gui.button_style
-    --     }
-    -- )
     frame.add(
         {
             type = "sprite-button",
@@ -151,6 +144,27 @@ function create_advanced_window(conf, player)
     local blueprint_examples_flow =
         frame.add({type = "flow", name = "OutpostBuilderBlueprintExamplesFlow", direction = "horizontal"})
 
+    for k, v in pairs(example_blueprints.raw) do
+        blueprint_examples_flow.add(
+            {
+                type = "button",
+                name = "OutpostBuilderBlueprintExample-" .. k,
+                style = mod_gui.button_style,
+                caption = {"outpost-builder.example-blueprint_" .. k}
+            }
+        )
+    end
+
+    blueprint_examples_flow.add(
+        {
+            type = "sprite-button",
+            name = "OutpostBuilderBlueprintWriteButton",
+            sprite = "miner-blueprint",
+            style = mod_gui.button_style,
+            tooltip = {"outpost-builder.mining-blueprint-write-tooltip"}
+        }
+    )
+
     frame.add(
         {type = "label", name = "OutpostBuilderDummyEntitiesLabel", caption = {"outpost-builder.dummy-entities-label"}}
     )
@@ -165,59 +179,12 @@ function create_advanced_window(conf, player)
             tooltip = {"outpost-builder.dummy-space-tooltip"}
         }
     )
-    dummy_entities_flow.add(
-        {
-            type = "sprite-button",
-            name = "OutpostBuilderDummyPipeButton",
-            sprite = "entity/" .. conf.dummy_pipe,
-            style = mod_gui.button_style,
-            tooltip = {"outpost-builder.dummy-pipe-tooltip"}
-        }
-    )
-    -- dummy_entities_flow.add(
-    --     {
-    --         type = "sprite-button",
-    --         name = "OutpostBuilderDummyPoleButton",
-    --         sprite = "entity/" .. conf.dummy_pole,
-    --         style = mod_gui.button_style,
-    --         tooltip = {"outpost-builder.dummy-pole-tooltip"}
-    --     }
-    -- )
 
     frame.add(
         {type = "label", name = "OutpostBuilderPoleOptionsLabel", caption = {"outpost-builder.pole-options-label"}}
     )
     local pole_options_flow = frame.add({type = "flow", name = "OutpostBuilderPoleOptions", direction = "vertical"})
-    add_radio(pole_options_flow, {"simple", "intelligent", "automatic"}, "outpost-builder.pole-options-")
-
-    frame.add(
-        {
-            type = "label",
-            name = "OutpostBuilderBlueprintDeatilsLabel",
-            caption = {"outpost-builder.blueprint-details-label"}
-        }
-    )
-    frame.add(
-        {
-            type = "label",
-            name = "OutpostBuilderBlueprintDeatilsFluid",
-            caption = {"outpost-builder.blueprint-details-fluids-true"}
-        }
-    )
-    frame.add(
-        {
-            type = "label",
-            name = "OutpostBuilderBlueprintDeatilsBelt",
-            caption = {"outpost-builder.blueprint-details-belt-true"}
-        }
-    )
-    frame.add(
-        {
-            type = "label",
-            name = "OutpostBuilderBlueprintDeatilsChest",
-            caption = {"outpost-builder.blueprint-details-chest-true"}
-        }
-    )
+    add_radio(pole_options_flow, {"always", "simple", "intelligent", "automatic"}, "outpost-builder.pole-options-")
 
     frame.add(
         {type = "label", name = "OutpostBuilderOtherLabel", caption = {"outpost-builder.blueprint-other-options-label"}}
@@ -225,20 +192,29 @@ function create_advanced_window(conf, player)
     frame.add(
         {
             type = "checkbox",
-            name = "OutpostBuilderOverrideEntities",
-            caption = {"outpost-builder.blueprint-other-override"},
+            name = "OutpostBuilderFluidCheckbox",
+            caption = {"outpost-builder.enable-fluid-checkbox"},
             state = false
         }
     )
-    --TODO simple_belt_placement
-    -- frame.add(
-    --     {
-    --         type = "checkbox",
-    --         name = "OutpostBuilderMirrorPoles",
-    --         caption = {"outpost-builder.blueprint-mirror-poles"},
-    --         state = true
-    --     }
-    -- )
+    frame.add(
+        {
+            type = "checkbox",
+            name = "OutpostBuilderBeltCheckbox",
+            caption = {"outpost-builder.enable-belt-checkbox"},
+            state = false
+        }
+    )
+    frame.add(
+        {
+            type = "checkbox",
+            name = "OutpostBuilderSmartBeltCheckbox",
+            caption = {"outpost-builder.smart-belt-checkbox"},
+            state = false
+        }
+    )
+
+    refresh_other_entities_list(player)
 end
 
 function add_radio(frame, optionsList, caption_base)
@@ -261,33 +237,114 @@ function update_advanced_window(conf, player)
     local frame = frame_flow.OutpostBuilderAdvancedWindow
     update_basic_settings(frame.OutpostBuilderBasicSettingsFlow, conf, player)
 
-    frame.OutpostBuilderDummyEntitiesFlow.OutpostBuilderDummyPipeButton.sprite = "entity/" .. conf.dummy_pipe
     frame.OutpostBuilderDummyEntitiesFlow.OutpostBuilderDummySpaceButton.sprite =
         "entity/" .. conf.dummy_spacing_entitiy
-    -- frame.OutpostBuilderDummyEntitiesFlow.OutpostBuilderDummyPoleButton.sprite = "entity/" .. conf.dummy_pole
 
     update_radio(frame.OutpostBuilderPoleOptions, conf.pole_options_selected)
 
-    if conf.leaving_belts then
-        frame.OutpostBuilderBlueprintDeatilsBelt.caption = {"outpost-builder.blueprint-details-belt-true"}
-    else
-        frame.OutpostBuilderBlueprintDeatilsBelt.caption = {"outpost-builder.blueprint-details-belt-false"}
-    end
+    frame.OutpostBuilderBeltCheckbox.state = conf.enable_belt_collate
+    -- if #conf.blueprint_data.leaving_belts > 0 or #conf.blueprint_data.leaving_underground_belts > 0 then
+    --     frame.OutpostBuilderBeltCheckbox.enabled = true
+    --     frame.OutpostBuilderBeltCheckbox.tooltip = ""
+    -- else
+    --     frame.OutpostBuilderBeltCheckbox.enabled = false
+    --     frame.OutpostBuilderBeltCheckbox.tooltip = {"outpost-builder.belt-checkbox-disabled-tooltip"}
+    -- end
 
-    if conf.blueprint_pipe_positions then
-        frame.OutpostBuilderBlueprintDeatilsFluid.caption = {"outpost-builder.blueprint-details-fluids-true"}
-    else
-        frame.OutpostBuilderBlueprintDeatilsFluid.caption = {"outpost-builder.blueprint-details-fluids-false"}
-    end
+    frame.OutpostBuilderFluidCheckbox.state = conf.enable_pipe_placement
+    -- if conf.blueprint_data.supports_fluid then
+    --     frame.OutpostBuilderFluidCheckbox.enabled = true
+    --     frame.OutpostBuilderFluidCheckbox.tooltip = ""
+    -- else
+    --     frame.OutpostBuilderFluidCheckbox.enabled = false
+    --     frame.OutpostBuilderFluidCheckbox.tooltip = {"outpost-builder.fluid-checkbox-disabled-tooltip"}
+    -- end
 
-    if conf.use_chest then
-        frame.OutpostBuilderBlueprintDeatilsChest.caption = {"outpost-builder.blueprint-details-chest-true"}
-    else
-        frame.OutpostBuilderBlueprintDeatilsChest.caption = {"outpost-builder.blueprint-details-chest-false"}
-    end
+    frame.OutpostBuilderSmartBeltCheckbox.state = conf.smart_belt_placement
+    -- if #conf.blueprint_data.leaving_underground_belts == 0 then
+    --     frame.OutpostBuilderSmartBeltCheckbox.enabled = true
+    --     frame.OutpostBuilderSmartBeltCheckbox.tooltip = ""
+    -- else
+    --     frame.OutpostBuilderSmartBeltCheckbox.enabled = false
+    --     frame.OutpostBuilderSmartBeltCheckbox.tooltip = {"outpost-builder.smart-belt-checkbox-disabled-tooltip"}
+    -- end
+end
 
-    frame.OutpostBuilderOverrideEntities.state = conf.override_entity_settings
-    --frame.OutpostBuilderMirrorPoles.state = conf.mirror_poles_at_bottom
+function refresh_other_entities_list(player, conf)
+    local conf = conf or get_config(player)
+    local frame_flow = mod_gui.get_frame_flow(player)
+    local frame = frame_flow.OutpostBuilderAdvancedWindow
+    if frame.OutpostBuilderOtherFlow then
+        frame.OutpostBuilderOtherFlow.destroy()
+    end
+    local flow = frame.add({type = "flow", name = "OutpostBuilderOtherFlow", direction = "vertical"})
+    name_table = {}
+    for k, v in pairs(conf.blueprint_data.other_entities) do
+        name_table[v.name] = true
+    end
+    local new_entity_settings = table.deep_clone(conf.other_entity_settings)
+    for k, v in pairs(name_table) do
+        new_entity_settings[k] = new_entity_settings[k] or {with_miners = true, every_x = 1}
+        local inner_flow = flow.add({type = "flow", name = "OutpostBuilderOtherFlow-" .. k, direction = "horizontal"})
+        inner_flow.add(
+            {
+                type = "sprite",
+                name = "OutpostBuilderOtherSprite",
+                sprite = "item/" .. k
+            }
+        )
+        inner_flow.add(
+            {
+                type = "label",
+                name = "OutpostBuilderOtherLabel",
+                caption = {"entity-name." .. k}
+            }
+        )
+        local options_flow =
+            inner_flow.add({type = "flow", name = "OutpostBuilderOtherOptions" .. k, direction = "vertical"})
+        options_flow.add(
+            {
+                type = "checkbox",
+                name = "OutpostBuilderOtherWithMiners-" .. k,
+                caption = {"outpost-builder.with-miners"},
+                state = new_entity_settings[k].with_miners
+            }
+        )
+
+        local place_every =
+            options_flow.add(
+            {
+                type = "flow",
+                name = "OutpostBuilderOtherPlaceEvery",
+                direction = "horizontal"
+            }
+        )
+
+        place_every.add(
+            {
+                type = "label",
+                name = "OutpostBuilderPlaceLabel",
+                caption = {"outpost-builder.place-every"}
+            }
+        )
+
+        place_every.add(
+            {
+                type = "drop-down",
+                name = "OutpostBuilderDropDown-" .. k,
+                items = {"1", "2", "3"},
+                selected_index = new_entity_settings[k].every_x
+            }
+        )
+        place_every.add(
+            {
+                type = "label",
+                name = "OutpostBuilderXBlueprintsLabel",
+                caption = {"outpost-builder.x-blueprints"}
+            }
+        )
+    end
+    set_config(player, {other_entity_settings = new_entity_settings})
 end
 
 function update_basic_settings(frame, conf, player)
@@ -305,11 +362,6 @@ function update_basic_settings(frame, conf, player)
         frame.OutpostBuilderOutputRowsButton.caption = belt_count_string
         frame.OutpostBuilderOutputRowsButton.enabled = not conf.use_chest
     end
-
-    -- if frame.OutpostBuilderMinerButton then
-    --     frame.OutpostBuilderMinerButton.sprite = "entity/" .. conf.miner_name
-    --     frame.OutpostBuilderMinerButton.tooltip = {"entity-name." .. conf.miner_name}
-    -- end
 
     if frame.OutpostBuilderPoleButton then
         frame.OutpostBuilderPoleButton.sprite = "entity/" .. conf.pole_name
@@ -434,9 +486,6 @@ local function belt_button_click(event)
                 end
             end
             set_config(player, {transport_belts = conf.transport_belts})
-        elseif place_result and (place_result.type == "container" or place_result.type == "logistic-container") then
-            set_config(player, {use_chest = place_result.name})
-            player.print({"outpost-builder.using-chest", {"entity-name." .. place_result.name}})
         else
             player.print({"outpost-builder.unknown-item"})
         end
@@ -447,23 +496,6 @@ local function belt_button_click(event)
         player.print({"outpost-builder.change-belt-3"})
     end
 end
-
--- local function miner_button_click(event)
---     local player = game.players[event.element.player_index]
---     local conf = get_config(player)
---     local item_stack = player.cursor_stack
---     if item_stack and item_stack.valid and item_stack.valid_for_read then
---         local place_result = item_stack.prototype.place_result
---         if place_result and place_result.type == "mining-drill" and place_result.resource_categories["basic-solid"] then
---             set_config(player, {miner_name = place_result.name})
---             player.print({"outpost-builder.use-miner", {"entity-name." .. place_result.name}})
---         else
---             player.print({"outpost-builder.unknown-item"})
---         end
---     else
---         player.print({"outpost-builder.change-miner"})
---     end
--- end
 
 local function pipe_button_click(event)
     local player = game.players[event.element.player_index]
@@ -497,8 +529,24 @@ local function pole_button_click(event)
     if item_stack and item_stack.valid and item_stack.valid_for_read then
         local place_result = item_stack.prototype.place_result
         if place_result and place_result.type == "electric-pole" then
-            set_config(player, {pole_name = place_result.name})
-            player.print({"outpost-builder.use-pole", {"entity-name." .. place_result.name}})
+            if
+                not conf.blueprint_data.pole_name or
+                    table.deep_compare(
+                        place_result.collision_box,
+                        game.entity_prototypes[conf.blueprint_data.pole_name].collision_box
+                    )
+             then
+                set_config(player, {pole_name = place_result.name})
+                player.print({"outpost-builder.use-pole", {"entity-name." .. place_result.name}})
+            else
+                player.print(
+                    {
+                        "outpost-builder.bad-fast-replace",
+                        {"entity-name." .. place_result.name},
+                        {"entity-name." .. conf.blueprint_data.pole_name}
+                    }
+                )
+            end
         else
             player.print({"outpost-builder.unknown-item"})
         end
@@ -602,23 +650,6 @@ local function find_leaving_underground_belts(entities)
     return list
 end
 
---TODO no longer needed
--- local function mirror_poles(entities, height)
---     local poles = {}
-
---     for k, pole in pairs(entities) do
---         local box = game.entity_prototypes[pole.name].collision_box
---         local offset = -math.ceil(box.right_bottom.y - box.left_top.y) / 2
---         if pole.position.y == offset then
---             local copy = table.deep_clone(pole)
---             copy.position.y = height + offset
---             table.insert(poles, copy)
---         end
---     end
-
---     return poles
--- end
-
 local function parse_blueprint(entities, conf)
     local blueprint_data = {
         miners = {},
@@ -626,22 +657,18 @@ local function parse_blueprint(entities, conf)
         belts = {},
         underground_belts = {},
         splitters = {},
-        pipes = {},
-        fluid_dummies = {},
         leaving_belts = {},
         leaving_underground_belts = {},
         other_entities = {},
         total_entities = #entities
     }
 
-    blueprint_data.fluid_dummies = strip_entities_of_name(entities, conf.dummy_pipe)
     blueprint_data.poles = strip_entities_of_type(entities, "electric-pole")
 
     local bounding_box = find_blueprint_bounding_box(entities)
     local shift_x = math.ceil((-bounding_box.left_top.x) - 0.5) + 0.5
     local shift_y = math.ceil((-bounding_box.left_top.y) - 0.5) + 0.5
     shift_blueprint(entities, shift_x, shift_y)
-    shift_blueprint(blueprint_data.fluid_dummies, shift_x, shift_y)
     shift_blueprint(blueprint_data.poles, shift_x, shift_y)
 
     local width = math.ceil(bounding_box.right_bottom.x + shift_x)
@@ -661,8 +688,6 @@ local function parse_blueprint(entities, conf)
     blueprint_data.splitters = strip_entities_of_type(entities, "splitter")
 
     blueprint_data.miners = strip_entities_of_type(entities, "mining-drill")
-
-    blueprint_data.pipes = strip_entities_of_type(entities, "pipe")
 
     blueprint_data.other_entities = entities
 
@@ -708,15 +733,18 @@ local function validate_blueprint(blueprint_data)
     if not prototype or not prototype.type == "mining-drill" or not prototype.resource_categories["basic-solid"] then
         return "Miners invalid"
     end
-    if
-        not table.all(
-            blueprint_data.miners,
-            function(miner)
-                return miner.name == name
-            end
-        )
-     then
-        return "Cannot have multiple types of miner per blueprint"
+    blueprint_data.supports_fluid = true
+    local multiple_miner_types = false
+    for k, miner in pairs(blueprint_data.miners) do
+        if miner.direction ~= defines.direction.north and miner.direction ~= defines.direction.south then
+            blueprint_data.supports_fluid = false
+        end
+        if miner.name ~= name then
+            multiple_miner_types = true
+        end
+    end
+    if multiple_miner_types then
+        return "Cannot have multiple types of miner in one blueprint"
     end
 
     if #blueprint_data.poles > 0 then
@@ -734,26 +762,7 @@ local function validate_blueprint(blueprint_data)
                 end
             )
          then
-            return "Cannot have multiple types of electric pole per blueprint"
-        end
-    end
-
-    if #blueprint_data.pipes > 0 then
-        local name = blueprint_data.pipes[1].name
-        blueprint_data.pipe_name = name
-        local prototype = game.entity_prototypes[name]
-        if not prototype or not prototype.type == "pipe" then
-            return "Pipe invalid"
-        end
-        if
-            not table.all(
-                blueprint_data.pipes,
-                function(pipe)
-                    return pipe.name == name
-                end
-            )
-         then
-            return "Cannot have multiple types of pipe per blueprint"
+            return "Cannot have multiple types of electric pole in one blueprint"
         end
     end
 
@@ -771,31 +780,6 @@ local function validate_blueprint(blueprint_data)
             end
         end
     end
-
-    blueprint_data.fluid_dummies_left = {}
-    blueprint_data.fluid_dummies_right = {}
-    while #blueprint_data.fluid_dummies > 0 do
-        local dummy = blueprint_data.fluid_dummies[1]
-        local pair =
-            table.filter_remove(
-            blueprint_data.fluid_dummies,
-            function(entity)
-                return entity.position.y == dummy.position.y
-            end
-        )
-        if #pair ~= 2 then
-            return "Each fluid input/output dummy entity must have a pair on its row"
-        end
-        table.sort(
-            pair,
-            function(a, b)
-                return a.position.x < b.position.x
-            end
-        )
-        table.insert(blueprint_data.fluid_dummies_left, pair[1])
-        table.insert(blueprint_data.fluid_dummies_right, pair[2])
-    end
-    blueprint_data.fluid_dummies = nil
 
     return false
 end
@@ -821,22 +805,23 @@ local function blueprint_button_click(event)
 
         if event.shift then
             set_config(
+                player,
                 {
-                    miner_name = blueprint_data.miner_name,
-                    pole_name = blueprint_data.pole_name,
-                    pipe_name = blueprint_data.pipe_name
+                    pole_name = blueprint_data.pole_name
                 }
             )
         else
-            for k, v in pairs({"miner_name", "pole_name", "pipe_name"}) do
+            for k, v in pairs({"pole_name"}) do
                 if
                     blueprint_data[v] and
-                        not game.entity_prototypes[blueprint_data[v]].fast_replaceable_group ==
-                            game.entity_prototypes[conf[v]].fast_replaceable_group
+                        not table.deep_compare(
+                            game.entity_prototypes[blueprint_data[v]].collision_box,
+                            game.entity_prototypes[conf[v]].collision_box
+                        )
                  then
                     player.print(
                         {
-                            "blueprint-settings-mismatch",
+                            "outpost-builder.blueprint-settings-mismatch",
                             {"entity-name." .. blueprint_data[v]},
                             {"entity-name." .. conf[v]}
                         }
@@ -846,17 +831,24 @@ local function blueprint_button_click(event)
             end
         end
 
-        game.write_file("blue_out.lua", serpent.block(blueprint_data))
-        game.write_file("blue_out_raw.lua", serpent.block(raw_entities))
+        --game.write_file("blue_out.lua", serpent.block(blueprint_data))
+        --game.write_file("blue_out_raw.lua", serpent.block(raw_entities))
 
-        set_config(player, {blueprint_data = blueprint_data, blueprint_raw = raw_entities})
+        set_config(
+            player,
+            {
+                blueprint_data = blueprint_data,
+                blueprint_raw = raw_entities,
+                smart_belt_placement = #blueprint_data.leaving_underground_belts > 0,
+                enable_pipe_placement = blueprint_data.supports_fluid,
+                enable_belt_collate = #conf.blueprint_data.leaving_belts > 0 or
+                    #conf.blueprint_data.leaving_underground_belts > 0
+            }
+        )
+        refresh_other_entities_list(player)
         player.print({"outpost-builder.blueprint-read-success"})
     else
         player.print {"outpost-builder.no-blueprint"}
-        set_config(
-            player,
-            {blueprint_entities = false, blueprint_width = false, blueprint_height = false, leaving_belt = false}
-        )
     end
 end
 
@@ -865,10 +857,14 @@ local function pole_options_click(event)
     set_config(player, {pole_options_selected = string.sub(event.element.name, 27)})
 end
 
-local function on_checkbox_click(event, config_key)
+local function on_checkbox_click(event, config_key, enabled_function, disabled_message)
     local player = game.players[event.element.player_index]
-    local checkbox = mod_gui.get_frame_flow(player).OutpostBuilderAdvancedWindow[event.element.name]
-    set_config(player, {[config_key] = checkbox.state})
+    local conf = get_config(player)
+    if enabled_function and not enabled_function(conf) then
+        player.print(disabled_message)
+    else
+        set_config(player, {[config_key] = event.element.state})
+    end
 end
 
 local function on_dummy_entity_click(event, config_key)
@@ -891,6 +887,47 @@ local function on_dummy_entity_click(event, config_key)
     player.print({"outpost-builder.change-dummy"})
 end
 
+local function write_blueprint_to_player(player, entities)
+    local item_stack = player.cursor_stack
+    if item_stack and item_stack.valid then
+        if not item_stack.valid_for_read then
+            item_stack.set_stack({name = "blueprint"})
+        end
+        if item_stack.type == "blueprint" and not item_stack.is_blueprint_setup() then
+            item_stack.set_blueprint_entities(entities)
+        else
+            player.print({"outpost-builder.need-empty-blueprint"})
+        end
+    end
+end
+
+local function example_blueprint_read(event, key)
+    local player = game.players[event.element.player_index]
+    write_blueprint_to_player(player, example_blueprints.raw[key])
+end
+
+local function blueprint_write_click(event)
+    local player = game.players[event.element.player_index]
+    local conf = get_config(player)
+    write_blueprint_to_player(player, conf.blueprint_raw)
+end
+
+local function other_entities_miner_checkbox(event, entity_name)
+    global.OB_CONF_overrides[event.element.player_index].other_entity_settings[entity_name].with_miners =
+        event.element.state
+end
+
+script.on_event(
+    defines.events.on_gui_selection_state_changed,
+    function(event)
+        if string.sub(event.element.name, 1, 23) == "OutpostBuilderDropDown-" then
+            local entity_name = string.sub(event.element.name, 24)
+            global.OB_CONF_overrides[event.element.player_index].other_entity_settings[entity_name].with_miners =
+                event.element.selected_index
+        end
+    end
+)
+
 script.on_event(
     defines.events.on_gui_click,
     function(event)
@@ -904,8 +941,6 @@ script.on_event(
         elseif event.element.name == "OutpostBuilderDirectionButton" then
             direction_button_click(event)
         elseif event.element.name == "OutpostBuilderOutputRowsButton" then
-            -- elseif event.element.name == "OutpostBuilderMinerButton" then
-            --     miner_button_click(event)
             count_button_click(event)
         elseif event.element.name == "OutpostBuilderPoleButton" then
             pole_button_click(event)
@@ -915,18 +950,43 @@ script.on_event(
             blueprint_button_click(event)
         elseif event.element.name == "OutpostBuilderToggleAdvancedButton" then
             toggle_advanced_window(event)
-        elseif string.sub(event.element.name, 1, 26) == "OutpostBuilderPoleOptions#" then
-            pole_options_click(event)
-        elseif event.element.name == "OutpostBuilderOverrideEntities" then
-            -- elseif event.element.name == "OutpostBuilderMirrorPoles" then
-            --     on_checkbox_click(event, "mirror_poles_at_bottom")
-            on_checkbox_click(event, "override_entity_settings")
+        elseif event.element.name == "OutpostBuilderFluidCheckbox" then
+            on_checkbox_click(
+                event,
+                "enable_pipe_placement",
+                function(conf)
+                    return conf.blueprint_data.supports_fluid
+                end,
+                {"outpost-builder.fluid-not-supported"}
+            )
+        elseif event.element.name == "OutpostBuilderBeltCheckbox" then
+            on_checkbox_click(
+                event,
+                "enable_belt_collate",
+                function(conf)
+                    return #conf.blueprint_data.leaving_belts > 0 or #conf.blueprint_data.leaving_underground_belts > 0
+                end,
+                {"outpost-builder.no-leaving-belts"}
+            )
+        elseif event.element.name == "OutpostBuilderSmartBeltCheckbox" then
+            on_checkbox_click(
+                event,
+                "smart_belt_placement",
+                function(conf)
+                    return #conf.blueprint_data.leaving_underground_belts == 0
+                end,
+                {"outpost-builder.no-smart-belt"}
+            )
         elseif event.element.name == "OutpostBuilderDummySpaceButton" then
             on_dummy_entity_click(event, "dummy_spacing_entitiy")
-        elseif event.element.name == "OutpostBuilderDummyPipeButton" then
-            on_dummy_entity_click(event, "dummy_pipe")
-        -- elseif event.element.name == "OutpostBuilderDummyPoleButton" then
-        --     on_dummy_entity_click(event, "dummy_pole")
+        elseif event.element.name == "OutpostBuilderBlueprintWriteButton" then
+            blueprint_write_click(event)
+        elseif string.sub(event.element.name, 1, 31) == "OutpostBuilderBlueprintExample-" then
+            example_blueprint_read(event, string.sub(event.element.name, 32))
+        elseif string.sub(event.element.name, 1, 30) == "OutpostBuilderOtherWithMiners-" then
+            other_entities_miner_checkbox(event, string.sub(event.element.name, 31))
+        elseif string.sub(event.element.name, 1, 26) == "OutpostBuilderPoleOptions#" then
+            pole_options_click(event)
         end
         update_gui(game.players[event.player_index])
     end

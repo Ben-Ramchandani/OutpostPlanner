@@ -47,19 +47,18 @@ function table.deep_compare(t1, t2)
     if ty1 ~= ty2 then
         return false
     end
-    -- non-table types can be directly compared
     if ty1 ~= 'table' then
         return t1 == t2
     end
     for k1, v1 in pairs(t1) do
         local v2 = t2[k1]
-        if v2 == nil or not deepcompare(v1, v2) then
+        if v2 == nil or not table.deep_compare(v1, v2) then
             return false
         end
     end
     for k2, v2 in pairs(t2) do
         local v1 = t1[k2]
-        if v1 == nil or not deepcompare(v1, v2) then
+        if v1 == nil or not table.deep_compare(v1, v2) then
             return false
         end
     end
