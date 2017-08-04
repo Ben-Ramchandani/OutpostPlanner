@@ -86,6 +86,16 @@ example_blueprints.standard = {
                 x = 1.5,
                 y = 8.5
             }
+        },
+        {
+            direction = 0,
+            entity_number = 9,
+            name = "medium-electric-pole",
+            place_only_with_small_poles = true,
+            position = {
+                x = -0.5,
+                y = 4.5
+            }
         }
     },
     splitters = {},
@@ -307,5 +317,57 @@ example_blueprints.raw.compact = {
             y = 0
         },
         type = "output"
+    }
+}
+
+example_blueprints.raw.robot = {
+    {
+        entity_number = 1,
+        name = "wooden-chest",
+        position = {
+            x = -1,
+            y = -4
+        }
+    },
+    {
+        entity_number = 2,
+        name = "medium-electric-pole",
+        position = {
+            x = 0,
+            y = -4
+        }
+    },
+    {
+        direction = 4,
+        entity_number = 3,
+        name = "electric-mining-drill",
+        position = {
+            x = 0,
+            y = -2
+        }
+    },
+    {
+        entity_number = 4,
+        name = "logistic-chest-passive-provider",
+        position = {
+            x = 0,
+            y = 0
+        }
+    },
+    {
+        entity_number = 5,
+        name = "electric-mining-drill",
+        position = {
+            x = 0,
+            y = 2
+        }
+    },
+    {
+        entity_number = 6,
+        name = "medium-electric-pole",
+        position = {
+            x = 0,
+            y = 4
+        }
     }
 }

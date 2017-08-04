@@ -4,7 +4,7 @@ require("example_blueprints")
 
 OB_CONF = {
     -- Can be changed with the in game GUI
-    pole_name = "small-electric-pole",
+    pole_name = "medium-electric-pole",
     transport_belts = {"transport-belt"},
     pipe_name = "pipe",
     direction = defines.direction.east,
@@ -88,11 +88,7 @@ local function validate_config(partialConf, player)
     end
     if partialConf.transport_belts then
         for k, belt in pairs(partialConf.transport_belts) do
-            if
-                not game.entity_prototypes[belt] or (not game.entity_prototypes[belt].type == "transport_belt") or
-                    not game.entity_prototypes[belt_to_splitter(belt)] or
-                    not (game.entity_prototypes[belt_to_splitter(belt)].type == "splitter")
-             then
+            if util.check_belt_entity(belt) then
                 return false
             end
         end
@@ -108,29 +104,12 @@ local function validate_config(partialConf, player)
             return false
         end
     end
-    if partialConf.use_chest then
-        if
-            not game.entity_prototypes[partialConf.use_chest] or
-                (game.entity_prototypes[partialConf.use_chest].type ~= "container" and
-                    game.entity_prototypes[partialConf.use_chest].type ~= "logistic-container")
-         then
-            return false
-        end
+    if partialConf.dummy_spacing_entitiy and not game.entity_prototypes[partialConf.dummy_spacing_entitiy] then
+        return false
     end
-    if partialConf.blueprint_entities then
-        for k, entity in pairs(partialConf.blueprint_entities) do
-            if not game.entity_prototypes[entity.name] then
-                return false
-            end
-        end
-    end
-    if partialConf.leaving_belt then
-        if
-            not partialConf.leaving_belt.name or
-                game.entity_prototypes[partialConf.leaving_belt.name].type ~= "underground-belt" or
-                not game.entity_prototypes[underground_to_belt(partialConf.leaving_belt.name)] or
-                game.entity_prototypes[underground_to_belt(partialConf.leaving_belt.name)].type ~= "transport-belt"
-         then
+    if partialConf.blueprint_data then
+        local err = validate_blueprint(partialConf.blueprint_data)
+        if err then
             return false
         end
     end

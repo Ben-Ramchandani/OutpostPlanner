@@ -243,31 +243,10 @@ function update_advanced_window(conf, player)
     update_radio(frame.OutpostBuilderPoleOptions, conf.pole_options_selected)
 
     frame.OutpostBuilderBeltCheckbox.state = conf.enable_belt_collate
-    -- if #conf.blueprint_data.leaving_belts > 0 or #conf.blueprint_data.leaving_underground_belts > 0 then
-    --     frame.OutpostBuilderBeltCheckbox.enabled = true
-    --     frame.OutpostBuilderBeltCheckbox.tooltip = ""
-    -- else
-    --     frame.OutpostBuilderBeltCheckbox.enabled = false
-    --     frame.OutpostBuilderBeltCheckbox.tooltip = {"outpost-builder.belt-checkbox-disabled-tooltip"}
-    -- end
 
     frame.OutpostBuilderFluidCheckbox.state = conf.enable_pipe_placement
-    -- if conf.blueprint_data.supports_fluid then
-    --     frame.OutpostBuilderFluidCheckbox.enabled = true
-    --     frame.OutpostBuilderFluidCheckbox.tooltip = ""
-    -- else
-    --     frame.OutpostBuilderFluidCheckbox.enabled = false
-    --     frame.OutpostBuilderFluidCheckbox.tooltip = {"outpost-builder.fluid-checkbox-disabled-tooltip"}
-    -- end
 
     frame.OutpostBuilderSmartBeltCheckbox.state = conf.smart_belt_placement
-    -- if #conf.blueprint_data.leaving_underground_belts == 0 then
-    --     frame.OutpostBuilderSmartBeltCheckbox.enabled = true
-    --     frame.OutpostBuilderSmartBeltCheckbox.tooltip = ""
-    -- else
-    --     frame.OutpostBuilderSmartBeltCheckbox.enabled = false
-    --     frame.OutpostBuilderSmartBeltCheckbox.tooltip = {"outpost-builder.smart-belt-checkbox-disabled-tooltip"}
-    -- end
 end
 
 function refresh_other_entities_list(player, conf)
@@ -332,7 +311,7 @@ function refresh_other_entities_list(player, conf)
             {
                 type = "drop-down",
                 name = "OutpostBuilderDropDown-" .. k,
-                items = {"1", "2", "3"},
+                items = {"1", "2", "3", "4", "5"},
                 selected_index = new_entity_settings[k].every_x
             }
         )
@@ -665,7 +644,7 @@ local function parse_blueprint(entities, conf)
 
     blueprint_data.poles = strip_entities_of_type(entities, "electric-pole")
 
-    local bounding_box = find_blueprint_bounding_box(entities)
+    local bounding_box = util.find_blueprint_bounding_box(entities)
     local shift_x = math.ceil((-bounding_box.left_top.x) - 0.5) + 0.5
     local shift_y = math.ceil((-bounding_box.left_top.y) - 0.5) + 0.5
     shift_blueprint(entities, shift_x, shift_y)
@@ -694,44 +673,15 @@ local function parse_blueprint(entities, conf)
     return blueprint_data
 end
 
-function check_belt_entity(name)
-    local prototype = game.entity_prototypes[name]
-    if not prototype then
-        return "Belt entity does not exist"
-    else
-        local belt_name
-        if prototype.type == "transport-belt" then
-            belt_name = name
-        elseif prototype.type == "underground-belt" then
-            belt_name = underground_to_belt(name)
-        elseif prototype.type == "splitter" then
-            belt_name = splitter_to_belt(name)
-        end
-
-        for k, v in ipairs(
-            {
-                {belt_name, "transport-belt"},
-                {belt_to_underground(belt_name), "underground-belt"},
-                {belt_to_splitter(belt_name), "splitter"}
-            }
-        ) do
-            if not game.entity_prototypes[v[1]] or game.entity_prototypes[v[1]].type ~= v[2] then
-                return {"outpost-builder.bad-belt", name}
-            end
-        end
-    end
-    return false
-end
-
-local function validate_blueprint(blueprint_data)
+function validate_blueprint(blueprint_data)
     if #blueprint_data.miners < 1 then
-        return "Blueprint must contain at least one miner"
+        return {"outpost-builder.validate-one-miner"}
     end
     local name = blueprint_data.miners[1].name
     blueprint_data.miner_name = name
     local prototype = game.entity_prototypes[name]
     if not prototype or not prototype.type == "mining-drill" or not prototype.resource_categories["basic-solid"] then
-        return "Miners invalid"
+        return {"outpost-builder.miners-invalid"}
     end
     blueprint_data.supports_fluid = true
     local multiple_miner_types = false
@@ -744,7 +694,7 @@ local function validate_blueprint(blueprint_data)
         end
     end
     if multiple_miner_types then
-        return "Cannot have multiple types of miner in one blueprint"
+        return {"outpost-builder.validate-multiple-miners"}
     end
 
     if #blueprint_data.poles > 0 then
@@ -752,7 +702,7 @@ local function validate_blueprint(blueprint_data)
         blueprint_data.pole_name = name
         local prototype = game.entity_prototypes[name]
         if not prototype or not prototype.type == "electric-pole" then
-            return "Electric pole invalid"
+            return {"outpost-builder.electric-pole-invalid"}
         end
         if
             not table.all(
@@ -762,19 +712,19 @@ local function validate_blueprint(blueprint_data)
                 end
             )
          then
-            return "Cannot have multiple types of electric pole in one blueprint"
+            return {"outpost-builder.validate-multiple-poles"}
         end
     end
 
     for k, v in pairs(blueprint_data.other_entities) do
         if not game.entity_prototypes[v.name] then
-            return "An entity in the blueprint does not exist"
+            return {"outpost-builder.validate-bad-entity"}
         end
     end
 
     for i, arr in ipairs({blueprint_data.belts, blueprint_data.underground_belts, blueprint_data.splitters}) do
         for k, v in pairs(arr) do
-            local err = check_belt_entity(v.name)
+            local err = util.check_belt_entity(v.name)
             if err then
                 return err
             end
@@ -832,14 +782,14 @@ local function blueprint_button_click(event)
         end
 
         --game.write_file("blue_out.lua", serpent.block(blueprint_data))
-        --game.write_file("blue_out_raw.lua", serpent.block(raw_entities))
+        game.write_file("blue_out_raw.lua", serpent.block(raw_entities))
 
         set_config(
             player,
             {
                 blueprint_data = blueprint_data,
                 blueprint_raw = raw_entities,
-                smart_belt_placement = #blueprint_data.leaving_underground_belts > 0,
+                smart_belt_placement = #blueprint_data.leaving_underground_belts == 0,
                 enable_pipe_placement = blueprint_data.supports_fluid,
                 enable_belt_collate = #conf.blueprint_data.leaving_belts > 0 or
                     #conf.blueprint_data.leaving_underground_belts > 0
@@ -922,7 +872,7 @@ script.on_event(
     function(event)
         if string.sub(event.element.name, 1, 23) == "OutpostBuilderDropDown-" then
             local entity_name = string.sub(event.element.name, 24)
-            global.OB_CONF_overrides[event.element.player_index].other_entity_settings[entity_name].with_miners =
+            global.OB_CONF_overrides[event.element.player_index].other_entity_settings[entity_name].every_x =
                 event.element.selected_index
         end
     end

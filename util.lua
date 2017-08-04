@@ -1,3 +1,5 @@
+util = util or {}
+
 function table.contains(array, element)
     for k, e in pairs(array) do
         if e == element then
@@ -65,7 +67,7 @@ function table.deep_compare(t1, t2)
     return true
 end
 
-function dict_to_array(dict)
+function util.dict_to_array(dict)
     local array = {}
     for k, v in pairs(dict) do
         table.insert(array, k)
@@ -106,6 +108,8 @@ end
 function id(x)
     return x
 end
+
+util.id = id
 
 function table.max_index(t, f)
     if not f then
@@ -223,7 +227,7 @@ function pipe_to_underground(pipe)
     return pipe .. "-to-ground"
 end
 
-function rotate_box(box, direction)
+function util.rotate_box(box, direction)
     if direction == defines.direction.east then
         return {left_top = {x = -box.right_bottom.y, y = box.left_top.x}, right_bottom = {x = -box.left_top.y, y = box.right_bottom.x}}
     elseif direction == defines.direction.south then
@@ -235,7 +239,7 @@ function rotate_box(box, direction)
     end
 end
 
-function find_blueprint_bounding_box(entities)
+function util.find_blueprint_bounding_box(entities)
     local top = math.huge
     local left = math.huge
     local right = -math.huge
@@ -244,7 +248,7 @@ function find_blueprint_bounding_box(entities)
     for k, entity in pairs(entities) do
         local prototype = game.entity_prototypes[entity.name]
         if prototype.collision_box then
-            local collision_box = rotate_box(prototype.collision_box, entity.direction)
+            local collision_box = util.rotate_box(prototype.collision_box, entity.direction)
             top = math.min(top, entity.position.y + collision_box.left_top.y)
             left = math.min(left, entity.position.x + collision_box.left_top.x)
             bottom = math.max(bottom, entity.position.y + collision_box.right_bottom.y)
@@ -259,4 +263,60 @@ function find_blueprint_bounding_box(entities)
     return {left_top = {x = left, y = top}, right_bottom = {x = right, y = bottom}}
 end
 
+function util.find_collision_bounding_box(entities)
+    local top = math.huge
+    local left = math.huge
+    local right = -math.huge
+    local bottom = -math.huge
+    
+    for k, entity in pairs(entities) do
+        if entity.valid then
+            if entity.bounding_box then
+                local collision_box = entity.bounding_box
+                top = math.min(top, collision_box.left_top.y)
+                left = math.min(left, collision_box.left_top.x)
+                bottom = math.max(bottom, collision_box.right_bottom.y)
+                right = math.max(right, collision_box.right_bottom.x)
+            else
+                top = math.min(top, entity.position.y)
+                left = math.min(left, entity.position.x)
+                bottom = math.max(bottom, entity.position.y)
+                right = math.max(right, entity.position.x)
+            end
+        end
+    end
+    return {left_top = {x = math.floor(left), y = math.floor(top)}, right_bottom = {x = math.ceil(right), y = math.ceil(bottom)}}
+end
 
+function util.make_area(left, top, right, bottom)
+    return {left_top = {x = left, y = top}, right_bottom = {x = right, y = bottom}}
+end
+
+function util.check_belt_entity(name)
+    local prototype = game.entity_prototypes[name]
+    if not prototype then
+        return {"outpost-builder.bad-belt", name}
+    else
+        local belt_name
+        if prototype.type == "transport-belt" then
+            belt_name = name
+        elseif prototype.type == "underground-belt" then
+            belt_name = underground_to_belt(name)
+        elseif prototype.type == "splitter" then
+            belt_name = splitter_to_belt(name)
+        end
+
+        for k, v in ipairs(
+            {
+                {belt_name, "transport-belt"},
+                {belt_to_underground(belt_name), "underground-belt"},
+                {belt_to_splitter(belt_name), "splitter"}
+            }
+        ) do
+            if not game.entity_prototypes[v[1]] or game.entity_prototypes[v[1]].type ~= v[2] then
+                return {"outpost-builder.bad-belt", name}
+            end
+        end
+    end
+    return false
+end
