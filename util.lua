@@ -49,7 +49,7 @@ function table.deep_compare(t1, t2)
     if ty1 ~= ty2 then
         return false
     end
-    if ty1 ~= 'table' then
+    if ty1 ~= "table" then
         return t1 == t2
     end
     for k1, v1 in pairs(t1) do
@@ -229,11 +229,20 @@ end
 
 function util.rotate_box(box, direction)
     if direction == defines.direction.east then
-        return {left_top = {x = -box.right_bottom.y, y = box.left_top.x}, right_bottom = {x = -box.left_top.y, y = box.right_bottom.x}}
+        return {
+            left_top = {x = -box.right_bottom.y, y = box.left_top.x},
+            right_bottom = {x = -box.left_top.y, y = box.right_bottom.x}
+        }
     elseif direction == defines.direction.south then
-        return {left_top = {x = -box.right_bottom.x, y = -box.right_bottom.y}, right_bottom = {x = -box.left_top.x, y = -box.left_top.y}}
+        return {
+            left_top = {x = -box.right_bottom.x, y = -box.right_bottom.y},
+            right_bottom = {x = -box.left_top.x, y = -box.left_top.y}
+        }
     elseif direction == defines.direction.west then
-        return {left_top = {x = box.left_top.y, y = -box.right_bottom.x}, right_bottom = {x = box.right_bottom.y, y = -box.left_top.x}}
+        return {
+            left_top = {x = box.left_top.y, y = -box.right_bottom.x},
+            right_bottom = {x = box.right_bottom.y, y = -box.left_top.x}
+        }
     else
         return box
     end
@@ -244,7 +253,7 @@ function util.find_blueprint_bounding_box(entities)
     local left = math.huge
     local right = -math.huge
     local bottom = -math.huge
-    
+
     for k, entity in pairs(entities) do
         local prototype = game.entity_prototypes[entity.name]
         if prototype.collision_box then
@@ -268,7 +277,7 @@ function util.find_collision_bounding_box(entities)
     local left = math.huge
     local right = -math.huge
     local bottom = -math.huge
-    
+
     for k, entity in pairs(entities) do
         if entity.valid then
             if entity.bounding_box then
@@ -285,7 +294,10 @@ function util.find_collision_bounding_box(entities)
             end
         end
     end
-    return {left_top = {x = math.floor(left), y = math.floor(top)}, right_bottom = {x = math.ceil(right), y = math.ceil(bottom)}}
+    return {
+        left_top = {x = math.floor(left), y = math.floor(top)},
+        right_bottom = {x = math.ceil(right), y = math.ceil(bottom)}
+    }
 end
 
 function util.make_area(left, top, right, bottom)
@@ -319,4 +331,11 @@ function util.check_belt_entity(name)
         end
     end
     return false
+end
+
+function util.add_box_position(box, position)
+    return {
+        left_top = {x = box.left_top.x + position.x, y = box.left_top.y + position.y},
+        right_bottom = {x = box.right_bottom.x + position.x, y = box.right_bottom.y + position.y}
+    }
 end

@@ -184,7 +184,11 @@ function create_advanced_window(conf, player)
         {type = "label", name = "OutpostBuilderPoleOptionsLabel", caption = {"outpost-builder.pole-options-label"}}
     )
     local pole_options_flow = frame.add({type = "flow", name = "OutpostBuilderPoleOptions", direction = "vertical"})
-    add_radio(pole_options_flow, {"always", "simple", "intelligent", "automatic"}, "outpost-builder.pole-options-")
+    add_radio(
+        pole_options_flow,
+        {"always", "simple", "intelligent" --[[, "automatic"--]]},
+        "outpost-builder.pole-options-"
+    )
 
     frame.add(
         {type = "label", name = "OutpostBuilderOtherLabel", caption = {"outpost-builder.blueprint-other-options-label"}}
@@ -339,7 +343,6 @@ function update_basic_settings(frame, conf, player)
             belt_count_string = tostring(conf.output_belt_count)
         end
         frame.OutpostBuilderOutputRowsButton.caption = belt_count_string
-        frame.OutpostBuilderOutputRowsButton.enabled = not conf.use_chest
     end
 
     if frame.OutpostBuilderPoleButton then
@@ -363,26 +366,21 @@ function update_basic_settings(frame, conf, player)
     end
 
     if frame.OutpostBuilderBeltButton then
-        if conf.use_chest then
-            frame.OutpostBuilderBeltButton.sprite = "entity/" .. conf.use_chest
-            frame.OutpostBuilderBeltButton.tooltip = {"entity-name." .. conf.use_chest}
-        else
-            local transport_belts = conf.transport_belts
-            frame.OutpostBuilderBeltButton.sprite = "item/transport-belt"
-            frame.OutpostBuilderBeltButton.tooltip = {"outpost-builder.belt-button"}
-            for j, belt in ipairs(transport_belts) do
-                local sprite =
-                    frame.add(
-                    {
-                        type = "sprite",
-                        name = "OutpostBuilderBeltSprite-" .. j,
-                        sprite = "entity/" .. belt,
-                        tooltip = {"entity-name." .. belt}
-                    }
-                )
-                sprite.style.minimal_height = 34
-                sprite.style.top_padding = 2
-            end
+        local transport_belts = conf.transport_belts
+        frame.OutpostBuilderBeltButton.sprite = "item/transport-belt"
+        frame.OutpostBuilderBeltButton.tooltip = {"outpost-builder.belt-button"}
+        for j, belt in ipairs(transport_belts) do
+            local sprite =
+                frame.add(
+                {
+                    type = "sprite",
+                    name = "OutpostBuilderBeltSprite-" .. j,
+                    sprite = "entity/" .. belt,
+                    tooltip = {"entity-name." .. belt}
+                }
+            )
+            sprite.style.minimal_height = 34
+            sprite.style.top_padding = 2
         end
     end
 end
@@ -442,16 +440,12 @@ local function belt_button_click(event)
         local place_result = item_stack.prototype.place_result
         if place_result and place_result.type == "transport-belt" then
             local name = place_result.name
-            if conf.use_chest then
-                set_config(player, {use_chest = false})
-                player.print {"outpost-builder.using-belt"}
-                return
-            end
-            local index = table.contains(conf.transport_belts, name)
+            local transport_belts = table.deep_clone(conf.transport_belts)
+            local index = table.contains(transport_belts, name)
             if index then
-                if #conf.transport_belts > 1 then
+                if #transport_belts > 1 then
                     player.print({"outpost-builder.forgetting-about", {"entity-name." .. name}})
-                    table.remove(conf.transport_belts, index)
+                    table.remove(transport_belts, index)
                 else
                     player.print({"outpost-builder.no-belt"})
                     return
@@ -459,12 +453,12 @@ local function belt_button_click(event)
             else
                 if game.entity_prototypes[belt_to_splitter(name)] then
                     player.print({"outpost-builder.know-about", {"entity-name." .. name}})
-                    table.insert(conf.transport_belts, name)
+                    table.insert(transport_belts, name)
                 else
                     player.print({"outpost-builder.no-splitter"})
                 end
             end
-            set_config(player, {transport_belts = conf.transport_belts})
+            set_config(player, {transport_belts = transport_belts})
         else
             player.print({"outpost-builder.unknown-item"})
         end
@@ -473,6 +467,20 @@ local function belt_button_click(event)
         player.print({"outpost-builder.change-belt-1"})
         player.print({"outpost-builder.change-belt-2"})
         player.print({"outpost-builder.change-belt-3"})
+    end
+end
+
+local function belt_sprite_click(event, num)
+    local index = tonumber(num)
+    local player = game.players[event.element.player_index]
+    local conf = get_config(player)
+    local transport_belts = table.deep_clone(conf.transport_belts)
+    if #transport_belts > 1 then
+        player.print({"outpost-builder.forgetting-about", {"entity-name." .. transport_belts[index]}})
+        table.remove(transport_belts, index)
+        set_config(player, {transport_belts = transport_belts})
+    else
+        player.print({"outpost-builder.no-belt"})
     end
 end
 
@@ -933,6 +941,8 @@ script.on_event(
             blueprint_write_click(event)
         elseif string.sub(event.element.name, 1, 31) == "OutpostBuilderBlueprintExample-" then
             example_blueprint_read(event, string.sub(event.element.name, 32))
+        elseif string.sub(event.element.name, 1, 25) == "OutpostBuilderBeltSprite-" then
+            belt_sprite_click(event, string.sub(event.element.name, 26))
         elseif string.sub(event.element.name, 1, 30) == "OutpostBuilderOtherWithMiners-" then
             other_entities_miner_checkbox(event, string.sub(event.element.name, 31))
         elseif string.sub(event.element.name, 1, 26) == "OutpostBuilderPoleOptions#" then
