@@ -724,9 +724,13 @@ function validate_blueprint(blueprint_data)
         end
     end
 
+    blueprint_data.other_electric_entities = false
     for k, v in pairs(blueprint_data.other_entities) do
         if not game.entity_prototypes[v.name] then
             return {"outpost-builder.validate-bad-entity"}
+        end
+        if game.entity_prototypes[v.name].electric_energy_source_prototype then
+            blueprint_data.other_electric_entities = true
         end
     end
 
@@ -743,6 +747,8 @@ function validate_blueprint(blueprint_data)
 end
 
 local function blueprint_button_click(event)
+    -- TODO: if other entities need powering then when using smart placement this should be taken into account
+
     local player = game.players[event.element.player_index]
     local conf = get_config(player)
     local item_stack = player.cursor_stack
@@ -790,7 +796,7 @@ local function blueprint_button_click(event)
         end
 
         --game.write_file("blue_out.lua", serpent.block(blueprint_data))
-        game.write_file("blue_out_raw.lua", serpent.block(raw_entities))
+        --game.write_file("blue_out_raw.lua", serpent.block(raw_entities))
 
         set_config(
             player,
@@ -799,8 +805,7 @@ local function blueprint_button_click(event)
                 blueprint_raw = raw_entities,
                 smart_belt_placement = #blueprint_data.leaving_underground_belts == 0,
                 enable_pipe_placement = blueprint_data.supports_fluid,
-                enable_belt_collate = #conf.blueprint_data.leaving_belts > 0 or
-                    #conf.blueprint_data.leaving_underground_belts > 0
+                enable_belt_collate = #blueprint_data.leaving_belts > 0 or #blueprint_data.leaving_underground_belts > 0
             }
         )
         refresh_other_entities_list(player)
