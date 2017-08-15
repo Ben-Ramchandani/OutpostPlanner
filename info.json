@@ -5,5 +5,5 @@
   "author": "bob809",
   "description": "EXPERIMENTAL VERSION | Automatically build mining outposts.",
   "factorio_version": "0.15.0",
-  "dependencies": ["base >= 0.15.00", "PlannerCore >= 0.0.1"]
+  "dependencies": ["base >= 0.15.00", "?PlannerCore >= 0.0.1"]
 }
