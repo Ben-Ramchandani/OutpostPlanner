@@ -1,4 +1,4 @@
-# Outpost Planner v0.3.0
+# Outpost Planner v0.3.1
 
 Automatically build mining outposts. The tool will place the miners, power poles and belts before merging together the outgoing lanes.
 To use select an ore patch with the tool.
@@ -84,8 +84,6 @@ There are currently three options for electric pole placement:
 If non-miner entities in the blueprint require power (e.g. Lamps) then Electric poles will always be placed in simple mode.
 
 
-
-
 ## Other settings
 
 
@@ -94,6 +92,10 @@ Alternatively the config file (`config.lua`) can be edited to change how the mod
     /c remote.call("OutpostBuilder", "config", {pole_name = "medium-electric-pole", run_over_multiple_ticks = false})
 
 ## Changelog
+
+0.3.1
+
+* Added messege when dummy entity is changed. Removed Experimental warning.
 
 0.3.0
 

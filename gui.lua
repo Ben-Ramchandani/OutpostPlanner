@@ -843,6 +843,7 @@ local function on_dummy_entity_click(event, config_key)
                     math.ceil(box.right_bottom.y - box.left_top.y) == 1
              then
                 set_config(player, {[config_key] = place_result.name})
+                player.print({"outpost-builder.change-dummy-" .. config_key, {"entity-name." .. place_result.name}})
                 return
             end
         end
