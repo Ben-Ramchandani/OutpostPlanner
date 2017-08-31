@@ -18,6 +18,7 @@ OB_CONF = {
     enable_belt_collate = true,
     other_entity_settings = {},
     output_belt_count = 4, -- The number of belts of ore leaving the set-up.
+    chest_name = "steel-chest",
     -- Can only be changed here (if in multiplayer make sure you all have the same config or you will desync).
     place_directly = false, -- Place entities directly or use blueprints?
     drain_inventory = true, -- When placing directly, should items be removed from the player's inventory?
@@ -108,8 +109,26 @@ local function validate_config(partialConf, player)
         return false
     end
     if partialConf.blueprint_data then
+        if not partialConf.blueprint_data.chests then
+            partialConf.blueprint_data.chests =
+                table.append_modify(
+                util.strip_entities_of_type(partialConf.blueprint_data.other_entities, "container"),
+                util.strip_entities_of_type(partialConf.blueprint_data.other_entities, "logistic-container")
+            )
+            if #partialConf.blueprint_data.chests > 0 then
+                partialConf.chest_name = partialConf.blueprint_data.chests[1].name
+            end
+        end
         local err = validate_blueprint(partialConf.blueprint_data)
         if err then
+            return false
+        end
+    end
+    if partialConf.chest_name then
+        if
+            not game.entity_prototypes[partialConf.chest_name] or
+                (game.entity_prototypes[partialConf.chest_name].type ~= "container" and game.entity_prototypes[partialConf.chest_name].type ~= "logistic-container")
+         then
             return false
         end
     end

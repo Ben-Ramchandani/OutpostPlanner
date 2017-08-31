@@ -216,7 +216,10 @@ function blueprint_place.poles(state, entity, column, row)
         OB_helper.place_entity(state, {position = position, name = state.conf.pole_name})
     else
         local index = (column - state.pole_indent_blueprint) % state.pole_spacing_blueprint
-        if index == 0 or is_last_column and index > state.pole_indent_blueprint_end or state.blueprint_data.other_electric_entities then
+        if
+            index == 0 or is_last_column and index > state.pole_indent_blueprint_end or
+                state.blueprint_data.other_electric_entities
+         then
             if state.use_pole_builder then
                 local abs_position = OB_helper.abs_position(state, position)
                 if OB_helper.collision_check(state, {position = abs_position, name = state.conf.pole_name}) then
@@ -258,6 +261,13 @@ function blueprint_place.splitters(state, entity, column, row)
     return blueprint_place.place_belt_like(state, entity, row, belt_to_splitter)
 end
 
+function blueprint_place.chests(state, entity, column, row)
+    entity.name = state.conf.chest_name
+    if state.row_details[row + 1].last_miner_column == column then
+        return OB_helper.place_entity(state, entity)
+    end
+end
+
 function blueprint_place.place_other(state, entity, column, row)
     local entity_settings = state.conf.other_entity_settings[entity.name]
     if not entity_settings.with_miners or state.row_details[row + 1].last_miner_column == column then
@@ -269,7 +279,7 @@ end
 
 blueprint_place.other_entities = blueprint_place.place_other
 
-blueprint_place.order = {"miners", "poles", "belts", "underground_belts", "splitters", "other_entities"}
+blueprint_place.order = {"miners", "poles", "belts", "underground_belts", "splitters", "chests", "other_entities"}
 
 function OB_stage.place_blueprint_entity(state)
     local row = math.floor(state.count / state.entities_per_row)

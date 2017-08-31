@@ -158,6 +158,7 @@ function table.append_modify(t1, t2)
     for i, v in ipairs(t2) do
         table.insert(t1, v)
     end
+    return t1
 end
 
 function table.find(t, func)
@@ -356,4 +357,22 @@ function util.add_box_position(box, position)
         left_top = {x = box.left_top.x + position.x, y = box.left_top.y + position.y},
         right_bottom = {x = box.right_bottom.x + position.x, y = box.right_bottom.y + position.y}
     }
+end
+
+function util.strip_entities_of_type(list, type)
+    return table.filter_remove(
+        list,
+        function(entity)
+            return game.entity_prototypes[entity.name].type == type
+        end
+    )
+end
+
+function util.strip_entities_of_name(list, name)
+    return table.filter_remove(
+        list,
+        function(entity)
+            return entity.name == name
+        end
+    )
 end

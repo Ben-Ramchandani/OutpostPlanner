@@ -84,6 +84,14 @@ function add_basic_settings_buttons(frame, conf)
     frame.add(
         {
             type = "sprite-button",
+            name = "OutpostBuilderChestButton",
+            sprite = ("entity/" .. conf.chest_name),
+            style = mod_gui.button_style
+        }
+    )
+    frame.add(
+        {
+            type = "sprite-button",
             name = "OutpostBuilderBeltButton",
             sprite = "item/transport-belt",
             style = mod_gui.button_style,
@@ -355,6 +363,11 @@ function update_basic_settings(frame, conf, player)
         frame.OutpostBuilderPipeButton.tooltip = {"entity-name." .. conf.pipe_name}
     end
 
+    if frame.OutpostBuilderChestButton then
+        frame.OutpostBuilderChestButton.sprite = "entity/" .. conf.chest_name
+        frame.OutpostBuilderChestButton.tooltip = {"entity-name." .. conf.chest_name}
+    end
+
     local i = 1
     while i <= #frame.children do
         element = frame.children[i]
@@ -509,6 +522,33 @@ local function pipe_button_click(event)
     end
 end
 
+local function chest_button_click(event)
+    local player = game.players[event.element.player_index]
+    local conf = get_config(player)
+    local item_stack = player.cursor_stack
+    if item_stack and item_stack.valid and item_stack.valid_for_read then
+        local place_result = item_stack.prototype.place_result
+        if place_result and (place_result.type == "container" or place_result.type == "logistic-container") then
+            if table.deep_compare(place_result.collision_box, game.entity_prototypes[conf.chest_name].collision_box) then
+                set_config(player, {chest_name = place_result.name})
+                player.print({"outpost-builder.use-chest", {"entity-name." .. place_result.name}})
+            else
+                player.print(
+                    {
+                        "outpost-builder.bad-fast-replace",
+                        {"entity-name." .. place_result.name},
+                        {"entity-name." .. conf.blueprint_data.chest_name}
+                    }
+                )
+            end
+        else
+            player.print({"outpost-builder.unknown-item"})
+        end
+    else
+        player.print({"outpost-builder.change-chest"})
+    end
+end
+
 local function pole_button_click(event)
     local player = game.players[event.element.player_index]
     local conf = get_config(player)
@@ -573,24 +613,6 @@ local function count_button_click(event)
     end
 end
 
-local function strip_entities_of_type(list, type)
-    return table.filter_remove(
-        list,
-        function(entity)
-            return game.entity_prototypes[entity.name].type == type
-        end
-    )
-end
-
-local function strip_entities_of_name(list, name)
-    return table.filter_remove(
-        list,
-        function(entity)
-            return entity.name == name
-        end
-    )
-end
-
 local function shift_blueprint(entities, shift_x, shift_y)
     table.apply(
         entities,
@@ -641,6 +663,7 @@ local function parse_blueprint(entities, conf)
     local blueprint_data = {
         miners = {},
         poles = {},
+        chests = {},
         belts = {},
         underground_belts = {},
         splitters = {},
@@ -650,7 +673,7 @@ local function parse_blueprint(entities, conf)
         total_entities = #entities
     }
 
-    blueprint_data.poles = strip_entities_of_type(entities, "electric-pole")
+    blueprint_data.poles = util.strip_entities_of_type(entities, "electric-pole")
 
     local bounding_box = util.find_blueprint_bounding_box(entities)
     local shift_x = math.ceil((-bounding_box.left_top.x) - 0.5) + 0.5
@@ -664,17 +687,22 @@ local function parse_blueprint(entities, conf)
     blueprint_data.width = width
     blueprint_data.height = height
 
-    strip_entities_of_name(entities, conf.dummy_spacing_entitiy)
+    util.strip_entities_of_name(entities, conf.dummy_spacing_entitiy)
 
-    local belts = strip_entities_of_type(entities, "transport-belt")
-    local underground_belts = strip_entities_of_type(entities, "underground-belt")
+    local belts = util.strip_entities_of_type(entities, "transport-belt")
+    local underground_belts = util.strip_entities_of_type(entities, "underground-belt")
     blueprint_data.leaving_belts = table.deep_clone(find_leaving_belts(belts, width))
     blueprint_data.leaving_underground_belts = table.deep_clone(find_leaving_underground_belts(underground_belts))
     blueprint_data.belts = belts
     blueprint_data.underground_belts = underground_belts
-    blueprint_data.splitters = strip_entities_of_type(entities, "splitter")
+    blueprint_data.splitters = util.strip_entities_of_type(entities, "splitter")
+    blueprint_data.chests =
+        table.append_modify(
+        util.strip_entities_of_type(entities, "container"),
+        util.strip_entities_of_type(entities, "logistic-container")
+    )
 
-    blueprint_data.miners = strip_entities_of_type(entities, "mining-drill")
+    blueprint_data.miners = util.strip_entities_of_type(entities, "mining-drill")
 
     blueprint_data.other_entities = entities
 
@@ -724,6 +752,25 @@ function validate_blueprint(blueprint_data)
         end
     end
 
+    if #blueprint_data.chests > 0 then
+        local name = blueprint_data.chests[1].name
+        blueprint_data.chest_name = name
+        local prototype = game.entity_prototypes[name]
+        if not prototype or (prototype.type ~= "container" and prototype.type ~= "logistic-container") then
+            return {"outpost-builder.container-invalid"}
+        end
+        if
+            not table.all(
+                blueprint_data.chests,
+                function(chest)
+                    return chest.name == name
+                end
+            )
+         then
+            return {"outpost-builder.validate-multiple-chests"}
+        end
+    end
+
     blueprint_data.other_electric_entities = false
     for k, v in pairs(blueprint_data.other_entities) do
         if not game.entity_prototypes[v.name] then
@@ -747,8 +794,6 @@ function validate_blueprint(blueprint_data)
 end
 
 local function blueprint_button_click(event)
-    -- TODO: if other entities need powering then when using smart placement this should be taken into account
-
     local player = game.players[event.element.player_index]
     local conf = get_config(player)
     local item_stack = player.cursor_stack
@@ -771,11 +816,12 @@ local function blueprint_button_click(event)
             set_config(
                 player,
                 {
-                    pole_name = blueprint_data.pole_name
+                    pole_name = blueprint_data.pole_name,
+                    chest_name = blueprint_data.chest_name
                 }
             )
         else
-            for k, v in pairs({"pole_name"}) do
+            for k, v in pairs({"pole_name", "chest_name"}) do
                 if
                     blueprint_data[v] and
                         not table.deep_compare(
@@ -910,6 +956,8 @@ script.on_event(
             pole_button_click(event)
         elseif event.element.name == "OutpostBuilderPipeButton" then
             pipe_button_click(event)
+        elseif event.element.name == "OutpostBuilderChestButton" then
+            chest_button_click(event)
         elseif event.element.name == "OutpostBuilderBlueprintReadButton" then
             blueprint_button_click(event)
         elseif event.element.name == "OutpostBuilderToggleAdvancedButton" then
