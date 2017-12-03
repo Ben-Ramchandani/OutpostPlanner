@@ -121,10 +121,8 @@ function OB_helper.collision_check(state, abs_data)
     return true
 end
 
-function OB_helper.place_entity(state, data)
+function OB_helper.abs_place_entity(state, data)
     data.force = state.force
-    data.position = OB_helper.abs_position(state, data.position)
-    data.direction = OB_helper.abs_direction(state, data.direction)
     local name = data.name
 
     if state.conf.check_collision and not OB_helper.collision_check(state, data) then
@@ -167,6 +165,12 @@ function OB_helper.place_entity(state, data)
     end
 
     return entity
+end
+
+function OB_helper.place_entity(state, data)
+    data.position = OB_helper.abs_position(state, data.position)
+    util.rotate_entity(data, state.direction_modifier)
+    return OB_helper.abs_place_entity(state, data)
 end
 
 function OB_helper.on_error(state)
@@ -357,14 +361,6 @@ function OB_helper.abs_area(state, area)
         left_top = {x = math.min(x1, x2), y = math.min(y1, y2)},
         right_bottom = {x = math.max(x1, x2), y = math.max(y1, y2)}
     }
-end
-
-function OB_helper.abs_direction(state, direction)
-    if direction then
-        return (direction + state.direction_modifier) % 8
-    else
-        return nil
-    end
 end
 
 function OB_helper.set_up_leaving_belt(state, row_details, belt, is_underground)

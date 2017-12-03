@@ -1,5 +1,6 @@
 require("on_init")
 require("on_load")
+require("util")
 
 PlannerCore = {}
 PlannerCore.stage_function_table = {}
@@ -8,6 +9,7 @@ PlannerCore.stage_function_table = {}
 require("OB_stages")
 require("PB_stages")
 require("PB_opt_stages")
+require("WB_stages")
 
 -- On tick functions
 function PlannerCore.placement_tick(state)
@@ -84,6 +86,7 @@ function PlannerCore.register(state)
     if #global.running_states == 1 then
         script.on_event(defines.events.on_tick, PlannerCore.on_tick)
     end
+
     return true
 end
 
@@ -146,7 +149,9 @@ table.insert(ON_INIT, PlannerCore.clear_running_state)
 remote.add_interface("PlannerCore", {register = PlannerCore.register, run_immediately = PlannerCore.run_immediately})
 
 PlannerCore.remote_invoke = {}
-
 require("PB_invoke")
+require("WB_default_config")
+require("WB_invoke")
+require("WB_gui")
 
 remote.add_interface("PlannerCoreInvoke", PlannerCore.remote_invoke)

@@ -613,17 +613,6 @@ local function count_button_click(event)
     end
 end
 
-local function shift_blueprint(entities, shift_x, shift_y)
-    table.apply(
-        entities,
-        function(entity)
-            entity.direction = entity.direction or 0
-            entity.position.x = entity.position.x + shift_x
-            entity.position.y = entity.position.y + shift_y
-        end
-    )
-end
-
 local function find_leaving_belts(entities, width)
     local list = {}
     for k, entity in pairs(entities) do
@@ -678,8 +667,8 @@ local function parse_blueprint(entities, conf)
     local bounding_box = util.find_blueprint_bounding_box(entities)
     local shift_x = math.ceil((-bounding_box.left_top.x) - 0.5) + 0.5
     local shift_y = math.ceil((-bounding_box.left_top.y) - 0.5) + 0.5
-    shift_blueprint(entities, shift_x, shift_y)
-    shift_blueprint(blueprint_data.poles, shift_x, shift_y)
+    util.shift_blueprint(entities, shift_x, shift_y)
+    util.shift_blueprint(blueprint_data.poles, shift_x, shift_y)
 
     local width = math.ceil(bounding_box.right_bottom.x + shift_x)
     local height = math.ceil(bounding_box.right_bottom.y + shift_y)

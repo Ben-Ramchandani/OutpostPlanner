@@ -249,6 +249,57 @@ function util.rotate_box(box, direction)
     end
 end
 
+function util.rotate_position_origin(position, direction)
+    direction = direction % 8
+    if direction == 0 then
+        return table.clone(position)
+    elseif direction == 2 then
+        return {
+            x = -position.y,
+            y = position.x
+        }
+    elseif direction == 4 then
+        return {
+            x = -position.x,
+            y = -position.y
+        }
+    elseif direction == 6 then
+        return {
+            x = position.y,
+            y = -position.x
+        }
+    else
+        local theta = ((direction % 8) / 8) * 2 * math.pi
+        return {
+            x = position.x * math.cos(theta) - position.y * math.sin(theta),
+            y = position.x * math.sin(theta) + position.y * math.cos(theta)
+        }
+    end
+end
+
+function util.rotate_position(position, direction, around_position)
+    position = table.clone(position)
+    position.x = position.x - around_position.x
+    position.y = position.y - around_position.y
+    util.rotate_position_origin(position, direction)
+    position.x = position.x + around_position.x
+    position.y = position.y + around_position.y
+    return position
+end
+
+function util.rotate_entity(entity, direction)
+    if entity.direction then
+        entity.direction = (entity.direction + direction) % 8
+    end
+    if entity.pickup_position then
+        entity.pickup_position = util.rotate_position_origin(entity.pickup_position, direction, entity.position)
+    end
+    if entity.drop_position then
+        entity.drop_position = util.rotate_position_origin(entity.drop_position, direction, entity.position)
+    end
+    return entity
+end
+
 function util.find_blueprint_bounding_box(entities)
     local top = math.huge
     local left = math.huge
@@ -269,6 +320,32 @@ function util.find_blueprint_bounding_box(entities)
             bottom = math.max(bottom, entity.position.y)
             right = math.max(right, entity.position.x)
         end
+    end
+    return {left_top = {x = left, y = top}, right_bottom = {x = right, y = bottom}}
+end
+
+function util.shift_blueprint(entities, shift_x, shift_y)
+    table.apply(
+        entities,
+        function(entity)
+            entity.direction = entity.direction or 0
+            entity.position.x = entity.position.x + shift_x
+            entity.position.y = entity.position.y + shift_y
+        end
+    )
+end
+
+function util.find_blueprint_bounding_box_no_collision(entities)
+    local top = math.huge
+    local left = math.huge
+    local right = -math.huge
+    local bottom = -math.huge
+
+    for k, entity in pairs(entities) do
+        top = math.min(top, entity.position.y)
+        left = math.min(left, entity.position.x)
+        bottom = math.max(bottom, entity.position.y)
+        right = math.max(right, entity.position.x)
     end
     return {left_top = {x = left, y = top}, right_bottom = {x = right, y = bottom}}
 end

@@ -1,4 +1,4 @@
-# Outpost Planner v0.4.0
+# Outpost Planner v0.4.1
 
 Automatically build mining outposts. The tool will place the miners, power poles and belts before merging together the outgoing lanes.
 To use select an ore patch with the tool.
@@ -93,7 +93,7 @@ Alternatively the config file (`config.lua`) can be edited to change how the mod
 
 ## Changelog
 
-0.4.0
+0.4.1
 
 * Added setting to change the container used in blueprints that have chests in.
 
