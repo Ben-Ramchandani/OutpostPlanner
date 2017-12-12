@@ -1,4 +1,4 @@
-# Outpost Planner v0.4.1
+# Outpost Planner v0.5.0
 
 Automatically build mining outposts. The tool will place the miners, power poles and belts before merging together the outgoing lanes.
 To use select an ore patch with the tool.
@@ -16,16 +16,14 @@ By default the the mod will clear trees and rocks in the area selected, if shift
 The mod includes an in-game GUI to change some settings which can be accessed via a small button in the top left of the screen 'OP'.
 
 
-![OP settings](http://imgur.com/sf5Jrtv.png)
+![OP settings](https://i.imgur.com/xGal4Y2.png)
 
 From the left:
 
-* Open the advanced settings window
+* Open the advanced settings window.
 * Change the direction of the output belts (N, E, S, W).
 * Change the maximum number of output belts. If there are more rows of miners than this number then the extra rows will be merged together.
 If you click this button with an item in your hand then the number of items in the stack is read.
-* Change the electric pole used (click with one in your hand).
-* Change the pipe used for e.g. Uranium mining (click with one in your hand).
 * Change the transport belt used. The mod supports use of multiple transport belts, using faster ones only when necessary to maintain throughput.
 To start using a new transport belt click the button with it in your hand, it will appear to the right of the button.
 To stop using a transport belt click again with it in hand or click on its icon in the list.  
@@ -35,10 +33,20 @@ You can instead click on this button with a chest and that will be used instead 
 
 ## Advanced settings
 
-This mod has a system for custom blueprints to alter the layout used.
+The advanced settings give you much more control over the mining layout, including support for custom blueprints.
 
-![OP advanced settings](http://i.imgur.com/AIbiusm.png)
+![OP advanced settings](https://i.imgur.com/npNmMGP.png)
 
+More basic setings appear, click on the button with one of these items in your hand to use that entity instead.
+
+* Electric pole
+* Pipe (when mining Uranium)
+* Mining drill
+* Chest (when using chests instead of belts)    
+
+
+
+This mod has a system for custom blueprints to alter the layout used.    
 Click on the read blueprint button with a blueprint in your hand and the mod will parse and use that blueprint.
 Several example blueprints are provided, either to be used as they are or as a starting point for your own custom one.
 Looking at these examples in-game is likely the best way to understand this mod, but further explanation is provided below.
@@ -60,19 +68,19 @@ Other entities (chests e.t.c.) are (again by default) placed when miners are pla
 ### Blueprints
 
 The following constraints are placed on blueprints:
-* Must contain at least one miner
 * Must have exactly one type of miner
 * Must have at most one type of electric pole
+* Must have at most one type of container
 
 Additionally for pipes to be placed when fluid mining (Uranium)
-* The miner must have a 3x3 collision box (information about pipe connections is not available to the Lua API at runtime)
+* The miner must have a 3x3 collision box (information about pipe connections is not available to the Lua API at runtime, so the pipe connections are assumed to be identical to a vanilla Electric Mining Drill)
 * All miners must be facing North or South
 
 For smart transport belt selection:
 * There must be one or more transport belts leaving the blueprint on the East side
 * The blueprint may not have any underground belts leaving it
 
-For determining the size of the blueprint Electric poles are ignored. A dummy entity (Wooden Chest by default) can be used to increase the size of the blueprint.
+For determining the size of the blueprint Electric poles are ignored. A dummy entity (Wooden Chest by default) can be used to increase the size of the blueprint, but is not actually placed.
 
 ### Electric pole placement
 
@@ -86,14 +94,24 @@ If non-miner entities in the blueprint require power (e.g. Lamps) then Electric 
 
 ## Other settings
 
-
-Alternatively the config file (`config.lua`) can be edited to change how the mod behaves (this *must* be the same between players in multiplayer). These options can also be changed for all existing players (multiplayer-safe) on a per-save basis with a command from the Lua console, e.g.
+The config file (`config.lua`) can be edited directly to change how the mod behaves (this *must* be the same between players in multiplayer). These options can also be changed for all existing players (multiplayer-safe) on a per-save basis with a command from the Lua console, e.g.
 
     /c remote.call("OutpostBuilder", "config", {pole_name = "medium-electric-pole", run_over_multiple_ticks = false})
 
 ## Changelog
 
+0.5.0
+
+* Added a button to change the mining drill used.
+* Moved The chest, pole, pipe and mining drill buttons to advanced settings.
+* Changed the behaviour of blueprint read: the chest, pole and miner settings are overridden by the contents of the blueprint by default.
+Holding shift keeps the original settings (was previously the other way around).
+
 0.4.1
+
+* Fixed bug when placing inserters with modified pickup and dropoff locations.
+
+0.4.0
 
 * Added setting to change the container used in blueprints that have chests in.
 

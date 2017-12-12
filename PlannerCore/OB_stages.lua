@@ -129,21 +129,9 @@ function OB_stage.set_up_placement_stages(state)
         end
     )
     state.fastest_belt_speed = state.transport_belts[#state.transport_belts].speed
-
-    local different_miners = false
-    local miner_name = state.blueprint_data.miners[1].name
-    for k, v in pairs(state.blueprint_data.miners) do
-        if v.name ~= miner_name then
-            different_miners = true
-            break
-        end
-    end
-    if
-        not different_miners and #state.ore_names == 1 and
-            not game.entity_prototypes[state.ore_names[1]].infinite_resource
-     then
+    if #state.ore_names == 1 and not game.entity_prototypes[state.ore_names[1]].infinite_resource then
         -- See https://wiki.factorio.com/Mining
-        local miner_prototype = game.entity_prototypes[state.blueprint_data.miners[1].name]
+        local miner_prototype = game.entity_prototypes[state.conf.miner_name]
         local mining_speed = miner_prototype.mining_speed
         local ore_prototype = game.entity_prototypes[state.ore_names[1]]
         if state.blueprint_data.miners[1].items then
@@ -184,6 +172,7 @@ blueprint_place = {}
 function blueprint_place.miners(state, entity, column, row)
     local position = table.clone(entity.position)
     local direction = entity.direction
+    entity.name = state.conf.miner_name
     if OB_helper.place_miner(state, entity) then
         local row_details = state.row_details[row + 1]
         row_details.last_miner_column = column

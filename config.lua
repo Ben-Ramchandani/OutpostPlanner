@@ -7,6 +7,7 @@ OB_CONF = {
     pole_name = "medium-electric-pole",
     transport_belts = {"transport-belt"},
     pipe_name = "pipe",
+    miner_name = "electric-mining-drill",
     direction = defines.direction.east,
     advanced_window_open = false,
     dummy_spacing_entitiy = "wooden-chest",
@@ -41,7 +42,7 @@ function get_config(player)
             pole_prototype.collision_box.right_bottom.x - pole_prototype.collision_box.left_top.y
         )
     )
-    local miner_prototype = game.entity_prototypes[conf.blueprint_data.miner_name]
+    local miner_prototype = game.entity_prototypes[conf.miner_name]
     conf.miner_width =
         math.ceil(
         math.max(
@@ -87,6 +88,16 @@ local function validate_config(partialConf, player)
             return false
         end
     end
+    if partialConf.miner_name then
+        if
+            not game.entity_prototypes[partialConf.miner_name] or
+                (not game.entity_prototypes[partialConf.miner_name].type == "mining-drill")
+         then
+            return false
+        end
+    elseif partialConf.blueprint_data then -- Migrate from 0.4 to 0.5+
+        partialConf.miner_name = partialConf.blueprint_data.miner_name
+    end
     if partialConf.transport_belts then
         for k, belt in pairs(partialConf.transport_belts) do
             if util.check_belt_entity(belt) then
@@ -109,7 +120,7 @@ local function validate_config(partialConf, player)
         return false
     end
     if partialConf.blueprint_data then
-        if not partialConf.blueprint_data.chests then
+        if not partialConf.blueprint_data.chests then -- Migrate from 0.3 to 0.4+
             partialConf.blueprint_data.chests =
                 table.append_modify(
                 util.strip_entities_of_type(partialConf.blueprint_data.other_entities, "container"),
@@ -127,7 +138,8 @@ local function validate_config(partialConf, player)
     if partialConf.chest_name then
         if
             not game.entity_prototypes[partialConf.chest_name] or
-                (game.entity_prototypes[partialConf.chest_name].type ~= "container" and game.entity_prototypes[partialConf.chest_name].type ~= "logistic-container")
+                (game.entity_prototypes[partialConf.chest_name].type ~= "container" and
+                    game.entity_prototypes[partialConf.chest_name].type ~= "logistic-container")
          then
             return false
         end
