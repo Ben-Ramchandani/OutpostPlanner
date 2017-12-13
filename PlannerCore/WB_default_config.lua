@@ -4,6 +4,7 @@ WB_CONF_DEFAULT = {
     water_tiles = {"water", "deepwater", "water-green", "deepwater-green", "out-of-map"},
     clearance_tiles = 1,
     run_over_multiple_ticks = true,
+    pole = nil,
     corner_entities = {
         {
             entity_number = 1,

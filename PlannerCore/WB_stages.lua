@@ -307,17 +307,6 @@ function WB_stage.plan(state)
         end
     end
 
-    game.print(
-        serpent.block(
-            table.map(
-                state.bottom_section_list,
-                function(s)
-                    return s.name
-                end
-            )
-        )
-    )
-
     state.section_master_list = {
         state.right_section_list,
         state.bottom_section_list,
@@ -329,7 +318,9 @@ end
 
 local function helper_place_entity(state, data)
     if state.use_pole_builder and game.entity_prototypes[data.name].type == "electric-pole" then
-        table.insert(state.pole_positions, data.position)
+        if OB_helper.collision_check(state, entity) then
+            table.insert(state.pole_positions, data.position)
+        end
     else
         return OB_helper.abs_place_entity(state, data)
     end
@@ -385,5 +376,24 @@ function WB_stage.place_entity(state)
         util.rotate_entity(entity, state.current_placement_direction * 2)
         helper_place_entity(state, entity)
         return false
+    end
+end
+
+function WB_stage.invoke_pole_builder(state)
+    if state.conf.pole then
+        remote.call(
+            "PlannerCoreInvoke",
+            "PoleBuilder",
+            {
+                player = state.player,
+                entities = state.placed_entities,
+                pole = state.conf.pole,
+                initial_pole_index = 1, -- TODO allow passthrough of some initial pole.
+                possible_pole_positions = state.pole_positions,
+                surpress_info = true,
+                conf = {run_over_multiple_ticks = state.conf.run_over_multiple_ticks}
+            }
+        )
+        return true
     end
 end

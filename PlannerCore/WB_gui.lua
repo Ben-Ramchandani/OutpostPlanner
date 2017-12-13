@@ -40,11 +40,14 @@ local function find_wall(entities, bounding_box)
     return wall_thickness, wall_outer_row, wall_name
 end
 
-local function read_section(entities, conf)
+local function read_section(entities, conf, player)
     local entities = table.deep_clone(entities)
     local bounding_box = util.find_blueprint_bounding_box_no_collision(entities)
     local wall_thickness, wall_outer_row, wall_name = find_wall(entities, bounding_box)
     bounding_box = util.find_blueprint_bounding_box(entities)
+    if bounding_box.right_bottom.x - bounding_box.left_top.x <= 0 then
+        player.print({"wall-builder.read-fail"})
+    end
     local shift_x = math.ceil((-bounding_box.left_top.x) - 0.5) + 0.5
     local shift_y = math.ceil((-bounding_box.left_top.y) - 0.5) + 0.5
     util.strip_entities_of_name(entities, conf.dummy_spacing_entitiy)
@@ -57,8 +60,13 @@ local function read_section(entities, conf)
     end
     local width = math.ceil(bounding_box.right_bottom.x - bounding_box.left_top.x)
     local height = math.ceil(bounding_box.right_bottom.y - bounding_box.left_top.y)
-
-    -- TODO: Check if there are power poles
+    local pole =
+        table.find(
+        entities,
+        function(e)
+            return game.entity_prototypes[e.name].type == "electric-pole"
+        end
+    )
 
     return {
         wall_thickness = wall_thickness,
@@ -67,16 +75,14 @@ local function read_section(entities, conf)
         width = width,
         height = height,
         wall_name = wall_name,
-        pole = nil
+        pole = pole
     }
 end
 
-
--- TODO this is broken
 local function generate_corner(section_data)
     local corner_entities = {}
     local size = section_data.height - 1
-    for depth = 0, section_data.wall_thickness do
+    for depth = 0, (section_data.wall_thickness - 1) do
         for x = (depth + 0), size do
             table.insert(
                 corner_entities,
@@ -104,14 +110,32 @@ local function generate_corner(section_data)
             )
         end
     end
-    if section_data.pole then
-    -- TODO put pole in corner
+    if section_data.pole and size > 0 then
+        table.insert(
+            corner_entities,
+            {
+                entity_number = section_data.height + size + 1,
+                name = section_data.pole,
+                position = {x = depth + 0.5, y = depth + 0.5}
+            }
+        )
     end
     return corner_entities
 end
 
+local function generate_filler(section_data)
+    local entities = {}
+    for y = 0, (section_data.wall_thickness - 1) do
+        table.insert(
+            entities,
+            {entity_number = y + 1, name = section_data.wall_name, position = {x = 0.5, y = y + 0.5}}
+        )
+    end
+    return entities
+end
+
 local function read_blueprint(item, conf, player)
-    local section_data = read_section(item.get_blueprint_entities(), conf)
+    local section_data = read_section(item.get_blueprint_entities(), conf, player)
     local corner_entities = generate_corner(section_data)
     local crossing_entities
     if section_data.wall_thickness > 0 then
@@ -126,12 +150,15 @@ local function read_blueprint(item, conf, player)
         crossing_entities = {}
     end
 
-    -- TODO Set up filler blueprint, called filler_entities
+    local filler_entities = generate_filler(section_data)
 
     local new_config = {
         section_entities = section_data.entities,
         corner_entities = corner_entities,
+        corner_width = section_data.height,
         crossing_entities = crossing_entities,
+        filler_entities = filler_entities,
+        filler_width = 1,
         crossing_width = 2,
         wall_thickness = section_data.wall_thickness,
         wall_outer_row = section_data.wall_outer_row,
@@ -141,7 +168,9 @@ local function read_blueprint(item, conf, player)
         pole = section_data.pole
     }
 
-    --game.write_file("wall_conf.lua", serpent.block(new_config))
+    -- game.write_file("wall_conf.lua", serpent.block(new_config))
+
+    player.print({"wall-builder.read-successful"})
 
     return new_config
 end
@@ -158,4 +187,3 @@ function WB_GUI.on_button_press(event, conf)
 end
 
 PlannerCore.remote_invoke.WB_on_button_press = WB_GUI.on_button_press
-
