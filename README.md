@@ -1,8 +1,9 @@
-# Outpost Planner v0.5.1
+# Outpost Planner v0.6.0
 
 Automatically build mining outposts. The tool will place the miners, power poles and belts before merging together the outgoing lanes.
 To use select an ore patch with the tool.
 By default the the mod will clear trees and rocks in the area selected, if shift is held then friendly entities will be deconstructed as well, keep in mind that the resulting outpost may be bigger than just the ore patch itself.
+This mod depends on [PlannerCore](https://github.com/Ben-Ramchandani/PlannerCore)
 
 ![OP example image](http://i.imgur.com/tUoPH24.png)
 
@@ -99,6 +100,11 @@ The config file (`config.lua`) can be edited directly to change how the mod beha
     /c remote.call("OutpostBuilder", "config", {pole_name = "medium-electric-pole", run_over_multiple_ticks = false})
 
 ## Changelog
+
+0.6.0
+
+* Updated for Factorio version 0.16.
+* PlannerCore is now a hard dependency.
 
 0.5.1
 

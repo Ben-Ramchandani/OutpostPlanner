@@ -1,10 +1,6 @@
 require("config")
 require("gui")
 
-if not remote.interfaces["PlannerCore"] then
-    require("PlannerCore/planner-core")
-end
-
 -- Note this mod uses its original name (OutpostBuilder) internally.
 
 local function on_selected_area(event, deconstruct_friendly)
