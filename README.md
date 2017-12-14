@@ -1,4 +1,4 @@
-# Outpost Planner v1.0.1
+# Outpost Planner v1.0.2
 
 Automatically build mining outposts. The tool will place the miners, power poles and belts before merging together the outgoing lanes.
 To use select an ore patch with the tool.
@@ -101,6 +101,10 @@ The config file (`config.lua`) can be edited directly to change how the mod beha
 
 ## Changelog
 
+1.0.2
+
+* Fixed bug in the default config preventing pipe placement being toggled.
+
 1.0.1
 
 * Updated GUI to work properly in 0.16.
@@ -192,3 +196,19 @@ Holding shift keeps the original settings (was previously the other way around).
 0.1.0
 
 * First version.
+
+## Roadmap
+
+Planned improvements to the mod, in the order which I'm planning to implement them.
+Feel free to open a GitHub issue with a feature request if there's somehting you would like that isn't here.
+
+* Add support for placing train stations attached to the output belts of an outpost.
+    * Ensure belts align (tracks are placed on a half resolution grid).
+    * Check blueprints rotate properly.
+    * Need to be able to connect up electric poles
+* Add support for placing walls aound an outpost.
+    * Four diferent wall segments, all user changeable with blueprints
+        * Normal wall section
+        * Corner
+        * Train gate
+        * Filler section (one tile wide)

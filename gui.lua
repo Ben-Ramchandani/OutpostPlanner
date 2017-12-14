@@ -980,7 +980,6 @@ local function blueprint_write_click(event)
     write_blueprint_to_player(player, conf.blueprint_raw)
 end
 
--- TODO THIS DON'T WORK
 local function other_entities_miner_checkbox(event, entity_name)
     global.OB_CONF_overrides[event.element.player_index].other_entity_settings[entity_name].with_miners =
         event.element.state

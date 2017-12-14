@@ -101,7 +101,8 @@ example_blueprints.standard = {
     splitters = {},
     total_entities = 8,
     underground_belts = {},
-    width = 3
+    width = 3,
+    supports_fluid = true
 }
 
 example_blueprints.raw.standard = {
