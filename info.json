@@ -3,7 +3,7 @@
   "version": "1.0.1",
   "title": "Outpost Planner",
   "author": "bob809",
-  "description": "Automatically build mining outposts.",
+  "description": "Automatically build mining outposts.\nDependencies: PlannerCore",
   "factorio_version": "0.16",
   "dependencies": ["base >= 0.16.00", "PlannerCore >= 0.1.0"]
 }
