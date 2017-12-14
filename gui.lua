@@ -509,7 +509,6 @@ local function belt_button_click(event)
         player.print({"outpost-builder.change-belt"})
         player.print({"outpost-builder.change-belt-1"})
         player.print({"outpost-builder.change-belt-2"})
-        player.print({"outpost-builder.change-belt-3"})
     end
 end
 
@@ -981,7 +980,6 @@ local function blueprint_write_click(event)
     write_blueprint_to_player(player, conf.blueprint_raw)
 end
 
-
 -- TODO THIS DON'T WORK
 local function other_entities_miner_checkbox(event, entity_name)
     global.OB_CONF_overrides[event.element.player_index].other_entity_settings[entity_name].with_miners =
@@ -996,6 +994,48 @@ script.on_event(
             global.OB_CONF_overrides[event.element.player_index].other_entity_settings[entity_name].every_x =
                 event.element.selected_index
         end
+    end
+)
+
+script.on_event(
+    defines.events.on_gui_checked_state_changed,
+    function(event)
+        if not string.sub(event.element.name, 1, 14) == "OutpostBuilder" then
+            return
+        end
+        if event.element.name == "OutpostBuilderFluidCheckbox" then
+            on_checkbox_click(
+                event,
+                "enable_pipe_placement",
+                function(conf)
+                    return conf.blueprint_data.supports_fluid
+                end,
+                {"outpost-builder.fluid-not-supported"}
+            )
+        elseif event.element.name == "OutpostBuilderBeltCheckbox" then
+            on_checkbox_click(
+                event,
+                "enable_belt_collate",
+                function(conf)
+                    return #conf.blueprint_data.leaving_belts > 0 or #conf.blueprint_data.leaving_underground_belts > 0
+                end,
+                {"outpost-builder.no-leaving-belts"}
+            )
+        elseif event.element.name == "OutpostBuilderSmartBeltCheckbox" then
+            on_checkbox_click(
+                event,
+                "smart_belt_placement",
+                function(conf)
+                    return #conf.blueprint_data.leaving_underground_belts == 0
+                end,
+                {"outpost-builder.no-smart-belt"}
+            )
+        elseif string.sub(event.element.name, 1, 30) == "OutpostBuilderOtherWithMiners-" then
+            other_entities_miner_checkbox(event, string.sub(event.element.name, 31))
+        elseif string.sub(event.element.name, 1, 26) == "OutpostBuilderPoleOptions#" then
+            pole_options_click(event)
+        end
+        update_gui(game.players[event.player_index])
     end
 )
 
@@ -1025,33 +1065,6 @@ script.on_event(
             blueprint_button_click(event)
         elseif event.element.name == "OutpostBuilderToggleAdvancedButton" then
             toggle_advanced_window(event)
-        elseif event.element.name == "OutpostBuilderFluidCheckbox" then
-            on_checkbox_click(
-                event,
-                "enable_pipe_placement",
-                function(conf)
-                    return conf.blueprint_data.supports_fluid
-                end,
-                {"outpost-builder.fluid-not-supported"}
-            )
-        elseif event.element.name == "OutpostBuilderBeltCheckbox" then
-            on_checkbox_click(
-                event,
-                "enable_belt_collate",
-                function(conf)
-                    return #conf.blueprint_data.leaving_belts > 0 or #conf.blueprint_data.leaving_underground_belts > 0
-                end,
-                {"outpost-builder.no-leaving-belts"}
-            )
-        elseif event.element.name == "OutpostBuilderSmartBeltCheckbox" then
-            on_checkbox_click(
-                event,
-                "smart_belt_placement",
-                function(conf)
-                    return #conf.blueprint_data.leaving_underground_belts == 0
-                end,
-                {"outpost-builder.no-smart-belt"}
-            )
         elseif event.element.name == "OutpostBuilderDummySpaceButton" then
             on_dummy_entity_click(event, "dummy_spacing_entitiy")
         elseif event.element.name == "OutpostBuilderBlueprintWriteButton" then
@@ -1060,10 +1073,6 @@ script.on_event(
             example_blueprint_read(event, string.sub(event.element.name, 32))
         elseif string.sub(event.element.name, 1, 25) == "OutpostBuilderBeltSprite-" then
             belt_sprite_click(event, string.sub(event.element.name, 26))
-        elseif string.sub(event.element.name, 1, 30) == "OutpostBuilderOtherWithMiners-" then
-            other_entities_miner_checkbox(event, string.sub(event.element.name, 31))
-        elseif string.sub(event.element.name, 1, 26) == "OutpostBuilderPoleOptions#" then
-            pole_options_click(event)
         end
         update_gui(game.players[event.player_index])
     end
