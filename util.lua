@@ -131,6 +131,14 @@ function table.max(t, f)
     return t[table.max_index(t, f)]
 end
 
+function table.min_index(t, f)
+    return table.max_index(t, function(x) return -f(x) end)
+end
+
+function table.min(t, f)
+    return t[table.min_index(t, f)]
+end
+
 function table.map(t, func)
     local new_table = {}
     for i, v in ipairs(t) do

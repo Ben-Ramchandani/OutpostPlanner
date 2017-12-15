@@ -207,6 +207,17 @@ function create_advanced_window(conf, player)
         }
     )
 
+    -- TODO move button
+    frame.add(
+        {
+            type = "sprite-button",
+            name = "OutpostBuilderTrainButton",
+            sprite = "item/locomotive",
+            style = mod_gui.button_style,
+            tooltip = "Train"
+        }
+    )
+
     -- Electric pole options
     frame.add(
         {type = "label", name = "OutpostBuilderPoleOptionsLabel", caption = {"outpost-builder.pole-options-label"}}
@@ -559,6 +570,60 @@ local function miner_button_click(event)
         end
     else
         player.print({"outpost-builder.change-miner"})
+    end
+end
+
+local function train_button_click(event)
+    local player = game.players[event.element.player_index]
+    local item_stack = player.cursor_stack
+    if
+        item_stack and item_stack.valid and item_stack.valid_for_read and item_stack.name == "blueprint" and
+            item_stack.is_blueprint_setup()
+     then
+        local entities = item_stack.get_blueprint_entities()
+        local left =
+            table.min(
+            entities,
+            function(e)
+                return e.x
+            end
+        )
+        local input_belts =
+            table.filter(
+            entities,
+            function(e)
+                return e.x == left and game.entity_prototypes[e.name].type == "tansport-belt" and
+                    e.direction == defines.direction.east
+            end
+        )
+        local bottom_input_belt_position =
+            table.max(
+            input_belts,
+            function(b)
+                return b.y
+            end
+        ).position
+        local num_belts = #input_belts
+        local track_x =
+            table.find(
+            entities,
+            function(e)
+                return e.name == "straight-rail"
+            end
+        )
+        set_config(
+            player,
+            {
+                station = {
+                    entities = entities,
+                    num_belts = num_belts,
+                    bottom_input_belt_position = bottom_input_belt_position,
+                    track_x = track_x
+                }
+            }
+        )
+    else
+        player.print {"outpost-builder.no-blueprint"}
     end
 end
 
