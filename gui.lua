@@ -585,25 +585,36 @@ local function train_button_click(event)
             table.min(
             entities,
             function(e)
-                return e.x
+                return e.position.x
             end
         )
+        if not left then
+            player.print {"outpost-builder.no-blueprint"}
+            return
+        end
+        left = left.position.x
         local input_belts =
-            table.filter(
+            table.filter_remove(
             entities,
             function(e)
-                return e.x == left and game.entity_prototypes[e.name].type == "tansport-belt" and
+                return e.position.x == left and game.entity_prototypes[e.name].type == "transport-belt" and
                     e.direction == defines.direction.east
             end
         )
-        local bottom_input_belt_position =
-            table.max(
-            input_belts,
-            function(b)
-                return b.y
-            end
-        ).position
         local num_belts = #input_belts
+        local bottom_input_belt_position
+        if num_belts > 0 then
+            bottom_input_belt_position =
+                table.clone(
+                table.max(
+                    input_belts,
+                    function(b)
+                        return b.position.y
+                    end
+                ).position
+            )
+            game.print(serpent.block(bottom_input_belt_position))
+        end
         local track_x =
             table.find(
             entities,
@@ -618,7 +629,8 @@ local function train_button_click(event)
                     entities = entities,
                     num_belts = num_belts,
                     bottom_input_belt_position = bottom_input_belt_position,
-                    track_x = track_x
+                    track_x = track_x,
+                    input_belts = input_belts
                 }
             }
         )
@@ -1125,6 +1137,8 @@ script.on_event(
             miner_button_click(event)
         elseif event.element.name == "OutpostBuilderChestButton" then
             chest_button_click(event)
+        elseif event.element.name == "OutpostBuilderTrainButton" then
+            train_button_click(event)
         elseif event.element.name == "OutpostBuilderBlueprintReadButton" then
             blueprint_button_click(event)
         elseif event.element.name == "OutpostBuilderToggleAdvancedButton" then
