@@ -25,6 +25,7 @@ local function on_selected_area(event, deconstruct_friendly)
         row_details = {},
         belt_row_details = {},
         output_rows = {},
+        entities_box = {left_top = {x = math.huge, y = math.huge}, right_bottom = {x = -math.huge, y = -math.huge}},
         conf = conf,
         stages = stages,
         stage_namespace = "OB_stage",

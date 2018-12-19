@@ -32,7 +32,7 @@ OB_CONF = {
 }
 
 function get_config(player)
-    local conf = table.combine(table.clone(OB_CONF), global.OB_CONF_overrides[player.index])
+    local conf = table.combine(table.clone(OB_CONF), table.deep_clone(global.OB_CONF_overrides[player.index]))
     conf.transport_belts = table.clone(conf.transport_belts)
     local pole_prototype = game.entity_prototypes[conf.pole_name]
     conf.pole_width =

@@ -32,15 +32,19 @@ function table.array_concat(arrays)
 end
 
 function table.deep_clone(org)
-    local copy = {}
-    for k, v in pairs(org) do
-        if type(v) == "table" then
-            copy[k] = table.deep_clone(v)
-        else
-            copy[k] = v
+    if org then
+        local copy = {}
+        for k, v in pairs(org) do
+            if type(v) == "table" then
+                copy[k] = table.deep_clone(v)
+            else
+                copy[k] = v
+            end
         end
+        return copy
+    else
+        return org
     end
-    return copy
 end
 
 function table.deep_compare(t1, t2)
@@ -132,7 +136,12 @@ function table.max(t, f)
 end
 
 function table.min_index(t, f)
-    return table.max_index(t, function(x) return -f(x) end)
+    return table.max_index(
+        t,
+        function(x)
+            return -f(x)
+        end
+    )
 end
 
 function table.min(t, f)

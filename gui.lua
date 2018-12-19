@@ -613,15 +613,21 @@ local function train_button_click(event)
                     end
                 ).position
             )
-            game.print(serpent.block(bottom_input_belt_position))
         end
-        local track_x =
+        local track =
+            entities[
             table.find(
-            entities,
-            function(e)
-                return e.name == "straight-rail"
-            end
-        )
+                entities,
+                function(e)
+                    return e.name == "straight-rail"
+                end
+            )
+        ]
+        if not track then
+            player.print({"outpost-builder.no-tracks"})
+            return
+        end
+        local track_x = track.position.x
         set_config(
             player,
             {
@@ -634,6 +640,7 @@ local function train_button_click(event)
                 }
             }
         )
+        player.print({"outpost-builder.blueprint-read-success"})
     else
         player.print {"outpost-builder.no-blueprint"}
     end
