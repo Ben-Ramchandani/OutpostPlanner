@@ -24,13 +24,13 @@ From the left:
 * Open the advanced settings window.
 * Change the direction of the output belts (N, E, S, W).
 * Change the maximum number of output belts. If there are more rows of miners than this number then the extra rows will be merged together.
-If you click this button with an item in your hand then the number of items in the stack is read.
+  If you click this button with an item in your hand then the number of items in the stack is read.
 * Change the transport belt used. The mod supports use of multiple transport belts, using faster ones only when necessary to maintain throughput.
-To start using a new transport belt click the button with it in your hand, it will appear to the right of the button.
-To stop using a transport belt click again with it in hand or click on its icon in the list.  
-For example, starting from the default (just normal transport belt), if you want the mod to use express belt only, you should click once with express belt in hand (to add it) and then
-click once with yellow belt in hand (to remove it).  
-You can instead click on this button with a chest and that will be used instead (for bot-based mining).
+  To start using a new transport belt click the button with it in your hand, it will appear to the right of the button.
+  To stop using a transport belt click again with it in hand or click on its icon in the list.  
+  For example, starting from the default (just normal transport belt), if you want the mod to use express belt only, you should click once with express belt in hand (to add it) and then
+  click once with yellow belt in hand (to remove it).  
+  You can instead click on this button with a chest and that will be used instead (for bot-based mining).
 
 ## Advanced settings
 
@@ -43,11 +43,11 @@ More basic setings appear, click on the button with one of these items in your h
 * Electric pole
 * Pipe (when mining Uranium)
 * Mining drill
-* Chest (when using chests instead of belts)    
+* Chest (when using chests instead of belts)
 
 
 
-This mod has a system for custom blueprints to alter the layout used.    
+This mod has a system for custom blueprints to alter the layout used.
 Click on the read blueprint button with a blueprint in your hand and the mod will parse and use that blueprint.
 Several example blueprints are provided, either to be used as they are or as a starting point for your own custom one.
 Looking at these examples in-game is likely the best way to understand this mod, but further explanation is provided below.
@@ -59,6 +59,7 @@ When an area is selected with the tool the ores are sorted by the product(s) of 
 The mod then proceeds to place the current blueprint in rows over the ore.
 
 Miners are only placed when:
+
 * There is no foreign ore in their mining area
 * There is valid ore in their collision box
 
@@ -69,15 +70,18 @@ Other entities (chests e.t.c.) are (again by default) placed when miners are pla
 ### Blueprints
 
 The following constraints are placed on blueprints:
+
 * Must have exactly one type of miner
 * Must have at most one type of electric pole
 * Must have at most one type of container
 
-Additionally for pipes to be placed when fluid mining (Uranium)
+Additionally for pipes to be placed when fluid mining (Uranium):
+
 * The miner must have a 3x3 collision box (information about pipe connections is not available to the Lua API at runtime, so the pipe connections are assumed to be identical to a vanilla Electric Mining Drill)
 * All miners must be facing North or South
 
 For smart transport belt selection:
+
 * There must be one or more transport belts leaving the blueprint on the East side
 * The blueprint may not have any underground belts leaving it
 
@@ -86,6 +90,7 @@ For determining the size of the blueprint Electric poles are ignored. A dummy en
 ### Electric pole placement
 
 There are currently three options for electric pole placement:
+
 * Always: place every electric pole.
 * Simple: Place electric poles at regular intervals, determined by the supply area and maximum wire distance of the poles used. For example a meduim electric pole might be placed every three blueprints.
 * Smart: As above, but electric poles are placed last and only as required to power all entities.
@@ -123,7 +128,7 @@ The config file (`config.lua`) can be edited directly to change how the mod beha
 * Added a button to change the mining drill used.
 * Moved The chest, pole, pipe and mining drill buttons to advanced settings.
 * Changed the behaviour of blueprint read: the chest, pole and miner settings are overridden by the contents of the blueprint by default.
-Holding shift keeps the original settings (was previously the other way around).
+  Holding shift keeps the original settings (was previously the other way around).
 
 0.4.1
 
@@ -203,12 +208,12 @@ Planned improvements to the mod, in the order which I'm planning to implement th
 Feel free to open a GitHub issue with a feature request if there's somehting you would like that isn't here.
 
 * Add support for placing train stations attached to the output belts of an outpost.
-    * Ensure belts align (tracks are placed on a half resolution grid).
-    * Check blueprints rotate properly.
-    * Need to be able to connect up electric poles
+  * Ensure belts align (tracks are placed on a half resolution grid).
+  * Check blueprints rotate properly.
+  * Need to be able to connect up electric poles
 * Add support for placing walls aound an outpost.
-    * Four diferent wall segments, all user changeable with blueprints
-        * Normal wall section
-        * Corner
-        * Train gate
-        * Filler section (one tile wide)
+  * Four diferent wall segments, all user changeable with blueprints
+    * Normal wall section
+    * Corner
+    * Train gate
+    * Filler section (one tile wide)

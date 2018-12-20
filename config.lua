@@ -21,10 +21,13 @@ OB_CONF = {
     output_belt_count = 4, -- The number of belts of ore leaving the set-up.
     chest_name = "steel-chest",
     -- Can only be changed here (if in multiplayer make sure you all have the same config or you will desync).
-    place_directly = false, -- Place entities directly or use blueprints?
+    -- TODO: At least some of these should be in mod settings
+    place_directly = false, -- Place entities directly or always use blueprints?
+    -- BEGIN if placing directly:
     drain_inventory = true, -- When placing directly, should items be removed from the player's inventory?
     place_blueprint_on_out_of_inventory = true, -- If the player does not have that item place a blueprint instead?
-    place_blueprint_on_collision = true, -- When placing directly, place a blueprint if there would otherwise be a collision.
+    place_blueprint_on_collision = true, -- Place a blueprint if something blocks direct placement?
+    -- END if placing directly
     check_for_ore = true, -- For each miner, check there is some of the correct ore underneath it.
     check_dirty_mining = true, -- For each miner, check if any other ores are present in its mining area.
     check_collision = true,
@@ -32,7 +35,7 @@ OB_CONF = {
 }
 
 function get_config(player)
-    local conf = table.combine(table.clone(OB_CONF), global.OB_CONF_overrides[player.index])
+    local conf = table.combine(OB_CONF, global.OB_CONF_overrides[player.index])
     conf.transport_belts = table.clone(conf.transport_belts)
     local pole_prototype = game.entity_prototypes[conf.pole_name]
     conf.pole_width =

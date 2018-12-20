@@ -4,7 +4,7 @@ all: $(NAME).zip
 
 $(NAME).zip: *
 	rm -f $(NAME).zip
-	cd ..; find $(NAME)/ -type f -not -path "*\.git/*" -not -name "\.git" -not -name "makefile" -not -name ".editorconfig | xargs zip $(NAME)/$(NAME).zip 
+	find . -type f -not -path "*\.git/*" -not -name "\.git" -not -name "makefile" -not -name ".editorconfig" | xargs zip $(NAME)/$(NAME).zip 
 
 .PHONY: clean
 

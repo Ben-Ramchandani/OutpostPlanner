@@ -458,6 +458,10 @@ local function toggle_settings_window(event)
     local player = game.players[event.element.player_index]
     local conf = get_config(player)
     local frame_flow = mod_gui.get_frame_flow(player)
+    if (not(frame_flow.OutpostBuilderWindow and frame_flow.OutpostBuilderAdvancedWindow)) then
+        l.warn("Settings window has been destroyed, rebuilding")
+        init_gui_player(player)
+    end
     if frame_flow.OutpostBuilderWindow.style.visible or frame_flow.OutpostBuilderAdvancedWindow.style.visible then
         frame_flow.OutpostBuilderWindow.style.visible = false
         frame_flow.OutpostBuilderAdvancedWindow.style.visible = false
@@ -1033,6 +1037,9 @@ script.on_event(
             other_entities_miner_checkbox(event, string.sub(event.element.name, 31))
         elseif string.sub(event.element.name, 1, 26) == "OutpostBuilderPoleOptions#" then
             pole_options_click(event)
+        else
+            l.warn("GUI checkbox change element name '" .. event.element.name .. "' not recognised.")
+            return
         end
         update_gui(game.players[event.player_index])
     end
@@ -1072,6 +1079,9 @@ script.on_event(
             example_blueprint_read(event, string.sub(event.element.name, 32))
         elseif string.sub(event.element.name, 1, 25) == "OutpostBuilderBeltSprite-" then
             belt_sprite_click(event, string.sub(event.element.name, 26))
+        else
+            l.debug("GUI click element name '" .. event.element.name .. "' not recognised.")
+            return
         end
         update_gui(game.players[event.player_index])
     end

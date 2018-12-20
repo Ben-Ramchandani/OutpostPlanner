@@ -1,3 +1,4 @@
+require("log")
 util = util or {}
 
 function table.contains(array, element)
@@ -88,7 +89,9 @@ end
 function table.combine(a, b)
     if not a then
         return b
-    elseif not b then
+    end
+    a = table.clone(a)
+    if not b then
         return a
     else
         for k, v in pairs(b) do
