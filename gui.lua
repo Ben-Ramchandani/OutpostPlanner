@@ -34,7 +34,7 @@ function create_settings_window(conf, player)
         direction = "horizontal",
         style = mod_gui.frame_style
     }
-    frame.style.visible = false
+    frame.visible = false
     local advanced_button =
         frame.add(
         {
@@ -86,7 +86,7 @@ function create_advanced_window(conf, player)
         frame_flow.add(
         {type = "frame", name = "OutpostBuilderAdvancedWindow", direction = "vertical", style = mod_gui.frame_style}
     )
-    frame.style.visible = false
+    frame.visible = false
 
     -- Basic settings
     frame.add(
@@ -462,21 +462,21 @@ local function toggle_settings_window(event)
         l.warn("Settings window has been destroyed, rebuilding")
         init_gui_player(player)
     end
-    if frame_flow.OutpostBuilderWindow.style.visible or frame_flow.OutpostBuilderAdvancedWindow.style.visible then
-        frame_flow.OutpostBuilderWindow.style.visible = false
-        frame_flow.OutpostBuilderAdvancedWindow.style.visible = false
+    if frame_flow.OutpostBuilderWindow.visible or frame_flow.OutpostBuilderAdvancedWindow.visible then
+        frame_flow.OutpostBuilderWindow.visible = false
+        frame_flow.OutpostBuilderAdvancedWindow.visible = false
     else
-        frame_flow.OutpostBuilderWindow.style.visible = not conf.advanced_window_open
-        frame_flow.OutpostBuilderAdvancedWindow.style.visible = conf.advanced_window_open
+        frame_flow.OutpostBuilderWindow.visible = not conf.advanced_window_open
+        frame_flow.OutpostBuilderAdvancedWindow.visible = conf.advanced_window_open
     end
 end
 
 local function toggle_advanced_window(event)
     local player = game.players[event.element.player_index]
     local frame_flow = mod_gui.get_frame_flow(player)
-    frame_flow.OutpostBuilderWindow.style.visible = frame_flow.OutpostBuilderAdvancedWindow.style.visible
-    frame_flow.OutpostBuilderAdvancedWindow.style.visible = not frame_flow.OutpostBuilderAdvancedWindow.style.visible
-    set_config(player, {advanced_window_open = frame_flow.OutpostBuilderAdvancedWindow.style.visible})
+    frame_flow.OutpostBuilderWindow.visible = frame_flow.OutpostBuilderAdvancedWindow.visible
+    frame_flow.OutpostBuilderAdvancedWindow.visible = not frame_flow.OutpostBuilderAdvancedWindow.visible
+    set_config(player, {advanced_window_open = frame_flow.OutpostBuilderAdvancedWindow.visible})
 end
 
 local function belt_button_click(event)
