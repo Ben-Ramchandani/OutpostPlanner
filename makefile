@@ -1,12 +1,24 @@
-NAME=OutpostPlanner_1.0.2
+# Runs in WSL if Windows Developer mode is enabled (non-admin symlink creation)
+# Run from parent directory
+NAME=OutpostPlanner
+# Has to be in same directory, uses relative paths because WSL symlink wierdness
+FACTORIO_FOLDER=Factorio_0.17.4
+VERSION=$(shell grep '"version":' ${NAME}/info.json | grep -oP '\d+\.\d+\.\d+')
+FILE_PATTERNS=${NAME}/**.lua\
+${NAME}/locale/*/*.cfg\
+${NAME}/graphics/*\
+${NAME}/info.json\
+${NAME}/LICENSE.txt\
+${NAME}/README.md\
+${NAME}/thumbnail.png
 
-all: $(NAME).zip
+.PHONY: link clean build
 
-$(NAME).zip: *
-	rm -f $(NAME).zip
-	find . -type f -not -path "*\.git/*" -not -name "\.git" -not -name "makefile" -not -name ".editorconfig" | xargs zip $(NAME)/$(NAME).zip 
+build: clean
+	zip ${FACTORIO_FOLDER}/mods/${NAME}_${VERSION}.zip ${FILE_PATTERNS}
 
-.PHONY: clean
+link: clean
+	cd ${FACTORIO_FOLDER}/mods && ln -s ../../${NAME} ${NAME}_${VERSION}
 
 clean:
-	rm -f $(NAME).zip
+	rm -f ${FACTORIO_FOLDER}/mods/${NAME}_*
