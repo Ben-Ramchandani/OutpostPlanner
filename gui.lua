@@ -774,7 +774,7 @@ function validate_blueprint(blueprint_data)
     local name = blueprint_data.miners[1].name
     blueprint_data.miner_name = name
     local prototype = game.entity_prototypes[name]
-    if not prototype or not prototype.type == "mining-drill" or not prototype.resource_categories["basic-solid"] then
+    if not prototype or not (prototype.type == "mining-drill") or not prototype.resource_categories["basic-solid"] then
         return {"outpost-builder.miners-invalid"}
     end
     blueprint_data.supports_fluid = true
@@ -795,7 +795,7 @@ function validate_blueprint(blueprint_data)
         local name = blueprint_data.poles[1].name
         blueprint_data.pole_name = name
         local prototype = game.entity_prototypes[name]
-        if not prototype or not prototype.type == "electric-pole" then
+        if not prototype or not (prototype.type == "electric-pole") then
             return {"outpost-builder.electric-pole-invalid"}
         end
         if
@@ -1003,7 +1003,7 @@ script.on_event(
 script.on_event(
     defines.events.on_gui_checked_state_changed,
     function(event)
-        if not string.sub(event.element.name, 1, 14) == "OutpostBuilder" then
+        if not (string.sub(event.element.name, 1, 14) == "OutpostBuilder") then
             return
         end
         if event.element.name == "OutpostBuilderFluidCheckbox" then
@@ -1048,7 +1048,7 @@ script.on_event(
 script.on_event(
     defines.events.on_gui_click,
     function(event)
-        if not string.sub(event.element.name, 1, 14) == "OutpostBuilder" then
+        if not (string.sub(event.element.name, 1, 14) == "OutpostBuilder") then
             return
         end
         if event.element.name == "OutpostBuilder" then

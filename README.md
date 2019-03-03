@@ -106,6 +106,10 @@ The config file (`config.lua`) can be edited directly to change how the mod beha
 
 ## Changelog
 
+1.1.1
+
+* Fix for logging bug
+
 1.1.0
 
 * Update for 0.17
