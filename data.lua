@@ -5,7 +5,6 @@ data:extend(
             name = "outpost-builder",
             icon = "__OutpostPlanner__/graphics/outpost-builder.png",
             icon_size = 32,
-            flags = {"goes-to-quickbar"},
             selection_color = {r = 1.0, g = 0.55, b = 0.0, a = 0.2},
             alt_selection_color = {r = 1.0, g = 0.2, b = 0.0, a = 0.2},
             selection_mode = {"any-entity"},
