@@ -2,7 +2,7 @@
 
 Automatically build mining outposts. The tool will place the miners, power poles and belts before merging together the outgoing lanes.
 To use select an ore patch with the tool.
-By default the the mod will clear trees and rocks in the area selected, if shift is held then friendly entities will be deconstructed as well, keep in mind that the resulting outpost may be bigger than just the ore patch itself.
+By default the mod will clear trees and rocks in the area selected, if shift is held then friendly entities will be deconstructed as well, keep in mind that the resulting outpost may be bigger than just the ore patch itself.
 This mod depends on [PlannerCore](https://github.com/Ben-Ramchandani/PlannerCore)
 
 ![OP example image](http://i.imgur.com/tUoPH24.png)
@@ -38,7 +38,7 @@ The advanced settings give you much more control over the mining layout, includi
 
 ![OP advanced settings](https://i.imgur.com/npNmMGP.png)
 
-More basic setings appear, click on the button with one of these items in your hand to use that entity instead.
+More basic settings appear, click on the button with one of these items in your hand to use that entity instead.
 
 * Electric pole
 * Pipe (when mining Uranium)
@@ -64,7 +64,7 @@ Miners are only placed when:
 * There is valid ore in their collision box
 
 Belts are only placed when miners have already been placed in that row.
-Electric poles are (by default, see below) placed later only as neccesary to power all blueprint entities.
+Electric poles are (by default, see below) placed later only as necessary to power all blueprint entities.
 Other entities (chests e.t.c.) are (again by default) placed when miners are placed from that blueprint.
 
 ### Blueprints
@@ -92,7 +92,7 @@ For determining the size of the blueprint Electric poles are ignored. A dummy en
 There are currently three options for electric pole placement:
 
 * Always: place every electric pole.
-* Simple: Place electric poles at regular intervals, determined by the supply area and maximum wire distance of the poles used. For example a meduim electric pole might be placed every three blueprints.
+* Simple: Place electric poles at regular intervals, determined by the supply area and maximum wire distance of the poles used. For example a medium electric pole might be placed every three blueprints.
 * Smart: As above, but electric poles are placed last and only as required to power all entities.
 
 If non-miner entities in the blueprint require power (e.g. Lamps) then Electric poles will always be placed in simple mode.
@@ -116,7 +116,7 @@ The config file (`config.lua`) can be edited directly to change how the mod beha
 
 1.0.3
 
-* GUI code is more reslilient to setings windows being detroyed.
+* GUI code is more resilient to settings windows being destroyed.
 
 1.0.2
 
@@ -156,7 +156,7 @@ The config file (`config.lua`) can be edited directly to change how the mod beha
 
 0.3.1
 
-* Added messege when dummy entity is changed. Removed Experimental warning.
+* Added message when dummy entity is changed. Removed Experimental warning.
 
 0.3.0
 
@@ -217,14 +217,14 @@ The config file (`config.lua`) can be edited directly to change how the mod beha
 ## Roadmap
 
 Planned improvements to the mod, in the order which I'm planning to implement them.
-Feel free to open a GitHub issue with a feature request if there's somehting you would like that isn't here.
+Feel free to open a GitHub issue with a feature request if there's something you would like that isn't here.
 
 * Add support for placing train stations attached to the output belts of an outpost.
   * Ensure belts align (tracks are placed on a half resolution grid).
   * Check blueprints rotate properly.
   * Need to be able to connect up electric poles
-* Add support for placing walls aound an outpost.
-  * Four diferent wall segments, all user changeable with blueprints
+* Add support for placing walls around an outpost.
+  * Four different wall segments, all user changeable with blueprints
     * Normal wall section
     * Corner
     * Train gate
