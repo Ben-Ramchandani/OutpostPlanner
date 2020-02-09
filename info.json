@@ -1,6 +1,6 @@
 {
   "name": "OutpostPlanner",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "title": "Outpost Planner",
   "author": "bob809",
   "description": "Automatically build mining outposts.\nDependencies: PlannerCore",
