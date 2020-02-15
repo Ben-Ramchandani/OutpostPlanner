@@ -540,9 +540,12 @@ local function miner_button_click(event)
             local old_prototype = game.entity_prototypes[conf.miner_name]
             if table.deep_compare(place_result.collision_box, old_prototype.collision_box) then
                 if
-                    (not old_prototype.module_inventory_size) or
-                        (place_result.module_inventory_size and
-                            place_result.module_inventory_size >= old_prototype.module_inventory_size)
+                    -- If we are using modules
+                    (not state.blueprint_data.miners[1].items or state.blueprint_data.miners[1].items.count == 0)
+                        -- Don't allow the new miner to have fewer module slots
+                        or (not old_prototype.module_inventory_size)
+                        or (place_result.module_inventory_size
+                            and place_result.module_inventory_size >= old_prototype.module_inventory_size)
                  then
                     set_config(player, {miner_name = place_result.name})
                     player.print({"outpost-builder.use-miner", {"entity-name." .. place_result.name}})

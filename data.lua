@@ -31,5 +31,6 @@ data:extend(
             width = 32,
             height = 32
         }
+        -- TODO: Add shortcut
     }
 )

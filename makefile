@@ -2,7 +2,7 @@
 # Run from parent directory
 NAME=OutpostPlanner
 # Has to be in same directory, uses relative paths because WSL symlink wierdness
-FACTORIO_FOLDER=Factorio_0.17.4
+FACTORIO_FOLDER=Factorio_0.18.6
 VERSION=$(shell grep '"version":' ${NAME}/info.json | grep -oP '\d+\.\d+\.\d+')
 FILE_PATTERNS=${NAME}/**.lua\
 ${NAME}/locale/*/*.cfg\
