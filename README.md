@@ -106,6 +106,14 @@ The config file (`config.lua`) can be edited directly to change how the mod beha
 
 ## Changelog
 
+1.1.3
+
+* Fix crash on miner button press
+
+1.1.2
+
+* Update for Factorio version 0.18
+
 1.1.1
 
 * Fix for logging bug
