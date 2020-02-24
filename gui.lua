@@ -541,7 +541,7 @@ local function miner_button_click(event)
             if table.deep_compare(place_result.collision_box, old_prototype.collision_box) then
                 if
                     -- If we are using modules
-                    (not state.blueprint_data.miners[1].items or state.blueprint_data.miners[1].items.count == 0)
+                    (not conf.blueprint_data.miners[1].items or state.blueprint_data.miners[1].items.count == 0)
                         -- Don't allow the new miner to have fewer module slots
                         or (not old_prototype.module_inventory_size)
                         or (place_result.module_inventory_size
