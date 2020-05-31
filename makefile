@@ -2,7 +2,7 @@
 # Run from parent directory
 NAME=OutpostPlanner
 # Has to be in same directory, uses relative paths because WSL symlink wierdness
-FACTORIO_FOLDER=Factorio_0.18.6
+FACTORIO_FOLDER=Factorio_0.18.28
 VERSION=$(shell grep '"version":' ${NAME}/info.json | grep -oP '\d+\.\d+\.\d+')
 FILE_PATTERNS=${NAME}/**.lua\
 ${NAME}/locale/*/*.cfg\
@@ -14,10 +14,13 @@ ${NAME}/thumbnail.png
 
 .PHONY: link clean build
 
-build: clean
+${FACTORIO_FOLDER}/mods:
+	mkdir -p ${FACTORIO_FOLDER}/mods
+
+build: clean ${FACTORIO_FOLDER}/mods
 	zip ${FACTORIO_FOLDER}/mods/${NAME}_${VERSION}.zip ${FILE_PATTERNS}
 
-link: clean
+link: clean ${FACTORIO_FOLDER}/mods
 	cd ${FACTORIO_FOLDER}/mods && ln -s ../../${NAME} ${NAME}_${VERSION}
 
 clean:
