@@ -106,6 +106,11 @@ The config file (`config.lua`) can be edited directly to change how the mod beha
 
 ## Changelog
 
+1.1.5
+
+* Update for 0.18.27
+* Add Cursed-FMD to list of incompatible mods
+
 1.1.3
 
 * Fix crash on miner button press
